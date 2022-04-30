@@ -57,9 +57,9 @@ for server in "${serverList[@]}"; do
       solrUser="-"
       solrPassword="-"
       if [[ "${magentoVersion}" == 1 ]]; then
-        solrUrl=$(php ../read_config_value.php "${webPath}" "solrbridge/settings/solr_server_url" "-")
-        solrUser=$(php ../read_config_value.php "${webPath}" "solrbridge/settings/solr_server_url_auth_username" "-")
-        solrPassword=$(php ../read_config_value.php "${webPath}" "solrbridge/settings/solr_server_url_auth_password" "-")
+        solrUrl=$(php read_config_value.php "${webPath}" "solrbridge/settings/solr_server_url" "-")
+        solrUser=$(php read_config_value.php "${webPath}" "solrbridge/settings/solr_server_url_auth_username" "-")
+        solrPassword=$(php read_config_value.php "${webPath}" "solrbridge/settings/solr_server_url_auth_password" "-")
       fi
 
       if [[ -n "${solrUrl}" ]]; then
@@ -116,7 +116,7 @@ for server in "${serverList[@]}"; do
         echo "${solrCoreList[@]}"
 
         echo -n "Extracting used Solr cores: "
-        usedSolrCoreList=( $(php ../read_config_value.php ~/www.kkl-luzern.ch/htdocs/ solrbridge/settings/solr_index) )
+        usedSolrCoreList=( $(php read_config_value.php ~/www.kkl-luzern.ch/htdocs/ solrbridge/settings/solr_index) )
         echo "${usedSolrCoreList[@]}"
 
         for usedSolrCore in "${usedSolrCoreList[@]}"; do

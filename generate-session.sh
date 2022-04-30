@@ -50,14 +50,14 @@ for server in "${serverList[@]}"; do
 
       if [[ "${magentoVersion}" == 1 ]]; then
         echo -n "Extracting session type: "
-        sessionBackend=$(php ../read_config_value.php "${webPath}" global/session_save)
+        sessionBackend=$(php read_config_value.php "${webPath}" global/session_save)
         if [[ "${sessionBackend}" == "db" ]]; then
-          redisSessionHost=$(php ../read_config_value.php "${webPath}" global/redis_session/host localhost)
+          redisSessionHost=$(php read_config_value.php "${webPath}" global/redis_session/host localhost)
           if [[ -n "${redisSessionHost}" ]]; then
             echo "Redis"
 
             echo -n "Extracting Redis host: "
-            redisSessionHost=$(php ../read_config_value.php "${webPath}" global/redis_session/host localhost)
+            redisSessionHost=$(php read_config_value.php "${webPath}" global/redis_session/host localhost)
             echo "${redisSessionHost}"
 
             if [[ "${redisSessionHost}" == "localhost" ]] || [[ "${redisSessionHost}" == "127.0.0.1" ]]; then
@@ -75,18 +75,18 @@ for server in "${serverList[@]}"; do
             fi
 
             echo -n "Extracting Redis port: "
-            redisSessionPort=$(php ../read_config_value.php "${webPath}" global/redis_session/port 6379)
+            redisSessionPort=$(php read_config_value.php "${webPath}" global/redis_session/port 6379)
             echo "${redisSessionPort}"
 
             echo -n "Extracting Redis password: "
-            redisSessionPassword=$(php ../read_config_value.php "${webPath}" global/redis_session/password)
+            redisSessionPassword=$(php read_config_value.php "${webPath}" global/redis_session/password)
             echo "${redisSessionPassword}"
             if [[ -z "${redisSessionPassword}" ]]; then
               redisSessionPassword="-"
             fi
 
             echo -n "Extracting Redis database: "
-            redisSessionDatabase=$(php ../read_config_value.php "${webPath}" global/redis_session/database 0)
+            redisSessionDatabase=$(php read_config_value.php "${webPath}" global/redis_session/database 0)
             echo "${redisSessionDatabase}"
 
             ./init-redis-session.sh \
@@ -103,12 +103,12 @@ for server in "${serverList[@]}"; do
         fi
       elif [[ "${magentoVersion}" == 2 ]]; then
         echo -n "Extracting session type: "
-        sessionBackend=$(php ../read_config_value.php "${webPath}" session/save)
+        sessionBackend=$(php read_config_value.php "${webPath}" session/save)
         if [[ "${sessionBackend}" == "redis" ]]; then
           echo "Redis"
 
           echo -n "Extracting Redis host: "
-          redisSessionHost=$(php ../read_config_value.php "${webPath}" session/redis/host localhost)
+          redisSessionHost=$(php read_config_value.php "${webPath}" session/redis/host localhost)
           echo "${redisSessionHost}"
 
           if [[ "${redisSessionHost}" == "localhost" ]] || [[ "${redisSessionHost}" == "127.0.0.1" ]]; then
@@ -126,18 +126,18 @@ for server in "${serverList[@]}"; do
           fi
 
           echo -n "Extracting Redis port: "
-          redisSessionPort=$(php ../read_config_value.php "${webPath}" session/redis/port 6379)
+          redisSessionPort=$(php read_config_value.php "${webPath}" session/redis/port 6379)
           echo "${redisSessionPort}"
 
           echo -n "Extracting Redis password: "
-          redisSessionPassword=$(php ../read_config_value.php "${webPath}" session/redis/password)
+          redisSessionPassword=$(php read_config_value.php "${webPath}" session/redis/password)
           echo "${redisSessionPassword}"
           if [[ -z "${redisSessionPassword}" ]]; then
             redisSessionPassword="-"
           fi
 
           echo -n "Extracting Redis database: "
-          redisSessionDatabase=$(php ../read_config_value.php "${webPath}" session/redis/database 0)
+          redisSessionDatabase=$(php read_config_value.php "${webPath}" session/redis/database 0)
           echo "${redisSessionDatabase}"
 
           ./init-redis-session.sh \

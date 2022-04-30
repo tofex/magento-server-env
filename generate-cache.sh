@@ -51,16 +51,16 @@ for server in "${serverList[@]}"; do
       if [[ "${magentoVersion}" == 1 ]]; then
         cachePrefix="-"
         echo -n "Extracting Magento cache prefix: "
-        cachePrefix=$(php ../read_config_value.php "${webPath}" global/cache/prefix)
+        cachePrefix=$(php read_config_value.php "${webPath}" global/cache/prefix)
         echo "${cachePrefix}"
 
         echo -n "Extracting cache type: "
-        cacheBackend=$(php ../read_config_value.php "${webPath}" global/cache/backend)
+        cacheBackend=$(php read_config_value.php "${webPath}" global/cache/backend)
         if [[ "${cacheBackend}" == "Cm_Cache_Backend_Redis" ]]; then
           echo "Redis"
 
           echo -n "Extracting Redis host: "
-          redisCacheHost=$(php ../read_config_value.php "${webPath}"  global/cache/backend_options/server localhost)
+          redisCacheHost=$(php read_config_value.php "${webPath}"  global/cache/backend_options/server localhost)
           echo "${redisCacheHost}"
 
           if [[ "${redisCacheHost}" == "localhost" ]] || [[ "${redisCacheHost}" == "127.0.0.1" ]]; then
@@ -78,22 +78,22 @@ for server in "${serverList[@]}"; do
           fi
 
           echo -n "Extracting Redis port: "
-          redisCachePort=$(php ../read_config_value.php "${webPath}" global/cache/backend_options/port 6379)
+          redisCachePort=$(php read_config_value.php "${webPath}" global/cache/backend_options/port 6379)
           echo "${redisCachePort}"
 
           echo -n "Extracting Redis password: "
-          redisCachePassword=$(php ../read_config_value.php "${webPath}" global/cache/backend_options/password)
+          redisCachePassword=$(php read_config_value.php "${webPath}" global/cache/backend_options/password)
           echo "${redisCachePassword}"
           if [[ -z "${redisCachePassword}" ]]; then
             redisCachePassword="-"
           fi
 
           echo -n "Extracting Redis database: "
-          redisCacheDatabase=$(php ../read_config_value.php "${webPath}" global/cache/backend_options/database 0)
+          redisCacheDatabase=$(php read_config_value.php "${webPath}" global/cache/backend_options/database 0)
           echo "${redisCacheDatabase}"
 
           echo -n "Extracting Redis class name: "
-          redisCacheClassName=$(php ../read_config_value.php "${webPath}" global/cache/backend)
+          redisCacheClassName=$(php read_config_value.php "${webPath}" global/cache/backend)
           echo "${redisCacheClassName}"
 
           ./init-redis-cache.sh \
@@ -110,16 +110,16 @@ for server in "${serverList[@]}"; do
       elif [[ "${magentoVersion}" == 2 ]]; then
         cachePrefix="-"
         echo -n "Extracting Magento cache prefix: "
-        cachePrefix=$(php ../read_config_value.php "${webPath}" cache/frontend/default/id_prefix)
+        cachePrefix=$(php read_config_value.php "${webPath}" cache/frontend/default/id_prefix)
         echo "${cachePrefix}"
 
         echo -n "Extracting cache type: "
-        cacheBackend=$(php ../read_config_value.php "${webPath}" cache/frontend/default/backend)
+        cacheBackend=$(php read_config_value.php "${webPath}" cache/frontend/default/backend)
         if [[ "${cacheBackend}" == "Cm_Cache_Backend_Redis" ]]; then
           echo "Redis"
 
           echo -n "Extracting Redis host: "
-          redisCacheHost=$(php ../read_config_value.php "${webPath}" cache/frontend/default/backend_options/server localhost)
+          redisCacheHost=$(php read_config_value.php "${webPath}" cache/frontend/default/backend_options/server localhost)
           echo "${redisCacheHost}"
 
           if [[ "${redisCacheHost}" == "localhost" ]] || [[ "${redisCacheHost}" == "127.0.0.1" ]]; then
@@ -137,22 +137,22 @@ for server in "${serverList[@]}"; do
           fi
 
           echo -n "Extracting Redis port: "
-          redisCachePort=$(php ../read_config_value.php "${webPath}" cache/frontend/default/backend_options/port 6379)
+          redisCachePort=$(php read_config_value.php "${webPath}" cache/frontend/default/backend_options/port 6379)
           echo "${redisCachePort}"
 
           echo -n "Extracting Redis password: "
-          redisCachePassword=$(php ../read_config_value.php "${webPath}" cache/frontend/default/backend_options/password)
+          redisCachePassword=$(php read_config_value.php "${webPath}" cache/frontend/default/backend_options/password)
           echo "${redisCachePassword}"
           if [[ -z "${redisCachePassword}" ]]; then
             redisCachePassword="-"
           fi
 
           echo -n "Extracting Redis database: "
-          redisCacheDatabase=$(php ../read_config_value.php "${webPath}" cache/frontend/default/backend_options/database 0)
+          redisCacheDatabase=$(php read_config_value.php "${webPath}" cache/frontend/default/backend_options/database 0)
           echo "${redisCacheDatabase}"
 
           echo -n "Extracting Redis class name: "
-          redisCacheClassName=$(php ../read_config_value.php "${webPath}" cache/frontend/default/backend)
+          redisCacheClassName=$(php read_config_value.php "${webPath}" cache/frontend/default/backend)
           echo "${redisCacheClassName}"
 
           ./init-redis-cache.sh \

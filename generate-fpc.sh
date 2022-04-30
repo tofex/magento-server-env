@@ -52,12 +52,12 @@ for server in "${serverList[@]}"; do
         fpcPrefix=
 
         echo -n "Extracting FPC type: "
-        fpcBackend=$(php ../read_config_value.php "${webPath}" global/full_page_cache/backend)
+        fpcBackend=$(php read_config_value.php "${webPath}" global/full_page_cache/backend)
         if [[ "${fpcBackend}" == "Cm_Cache_Backend_Redis" ]]; then
           echo "Redis"
 
           echo -n "Extracting Redis host: "
-          redisFullPageCacheHost=$(php ../read_config_value.php "${webPath}" global/full_page_cache/backend_options/backend_options/server localhost)
+          redisFullPageCacheHost=$(php read_config_value.php "${webPath}" global/full_page_cache/backend_options/backend_options/server localhost)
           echo "${redisFullPageCacheHost}"
 
           if [[ "${redisFullPageCacheHost}" == "localhost" ]] || [[ "${redisFullPageCacheHost}" == "127.0.0.1" ]]; then
@@ -75,22 +75,22 @@ for server in "${serverList[@]}"; do
           fi
 
           echo -n "Extracting Redis port: "
-          redisFullPageCachePort=$(php ../read_config_value.php "${webPath}" global/full_page_cache/backend_options/port 6379)
+          redisFullPageCachePort=$(php read_config_value.php "${webPath}" global/full_page_cache/backend_options/port 6379)
           echo "${redisFullPageCachePort}"
 
           echo -n "Extracting Redis password: "
-          redisFullPageCachePassword=$(php ../read_config_value.php "${webPath}" global/full_page_cache/backend_options/password)
+          redisFullPageCachePassword=$(php read_config_value.php "${webPath}" global/full_page_cache/backend_options/password)
           echo "${redisFullPageCachePassword}"
           if [[ -z "${redisFullPageCachePassword}" ]]; then
             redisFullPageCachePassword="-"
           fi
 
           echo -n "Extracting Redis database: "
-          redisFullPageCacheDatabase=$(php ../read_config_value.php "${webPath}" global/full_page_cache/backend_options/database 0)
+          redisFullPageCacheDatabase=$(php read_config_value.php "${webPath}" global/full_page_cache/backend_options/database 0)
           echo "${redisFullPageCacheDatabase}"
 
           echo -n "Extracting Redis class name: "
-          redisFullPageCacheClassName=$(php ../read_config_value.php "${webPath}" global/full_page_cache/backend)
+          redisFullPageCacheClassName=$(php read_config_value.php "${webPath}" global/full_page_cache/backend)
           echo "${redisFullPageCacheClassName}"
 
           ./init-redis-fpc.sh \
@@ -106,16 +106,16 @@ for server in "${serverList[@]}"; do
         fi
       elif [[ "${magentoVersion}" == 2 ]]; then
         echo -n "Extracting FPC prefix: "
-        fpcPrefix=$(php ../read_config_value.php "${webPath}" cache/frontend/page_cache/id_prefix)
+        fpcPrefix=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/id_prefix)
         echo "${fpcPrefix}"
 
         echo -n "Extracting FPC type: "
-        fpcBackend=$(php ../read_config_value.php "${webPath}" cache/frontend/page_cache/backend)
+        fpcBackend=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend)
         if [[ "${fpcBackend}" == "Cm_Cache_Backend_Redis" ]]; then
           echo "Redis"
 
           echo -n "Extracting Redis host: "
-          redisFullPageCacheHost=$(php ../read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/server localhost)
+          redisFullPageCacheHost=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/server localhost)
           echo "${redisFullPageCacheHost}"
 
           if [[ "${redisFullPageCacheHost}" == "localhost" ]] || [[ "${redisFullPageCacheHost}" == "127.0.0.1" ]]; then
@@ -133,22 +133,22 @@ for server in "${serverList[@]}"; do
           fi
 
           echo -n "Extracting Redis port: "
-          redisFullPageCachePort=$(php ../read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/port 6379)
+          redisFullPageCachePort=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/port 6379)
           echo "${redisFullPageCachePort}"
 
           echo -n "Extracting Redis password: "
-          redisFullPageCachePassword=$(php ../read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/password)
+          redisFullPageCachePassword=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/password)
           echo "${redisFullPageCachePassword}"
           if [[ -z "${redisFullPageCachePassword}" ]]; then
             redisFullPageCachePassword="-"
           fi
 
           echo -n "Extracting Redis database: "
-          redisFullPageCacheDatabase=$(php ../read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/database 0)
+          redisFullPageCacheDatabase=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/database 0)
           echo "${redisFullPageCacheDatabase}"
 
           echo -n "Extracting Redis class name: "
-          redisFullPageCacheClassName=$(php ../read_config_value.php "${webPath}" cache/frontend/page_cache/backend)
+          redisFullPageCacheClassName=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend)
           echo "${redisFullPageCacheClassName}"
 
           ./init-redis-fpc.sh \
