@@ -23,7 +23,7 @@ trim()
 serverType=
 
 while getopts ht:? option; do
-  case ${option} in
+  case "${option}" in
     h) usage; exit 1;;
     t) serverType=$(trim "$OPTARG");;
     ?) usage; exit 1;;
@@ -38,7 +38,7 @@ if [[ -z "${serverType}" ]]; then
   echo ""
   echo "Do you wish to add a local server?"
   select yesNo in "Yes" "No"; do
-    case ${yesNo} in
+    case "${yesNo}" in
       Yes ) serverType=local; break;;
       No ) serverType=ssh; break;;
     esac
@@ -59,19 +59,19 @@ if [[ "${serverType}" == "local" ]]; then
 elif [[ "${serverType}" == "ssh" ]]; then
   echo ""
   echo "Please specify the SSH host, followed by [ENTER]:"
-  read -r host
+  read -r -e host
 
   echo ""
   echo "Please specify the SSH user, followed by [ENTER]:"
-  read -r sshUser
+  read -r -e sshUser
 fi
 
 echo ""
 echo "Please specify the web path of Magento, followed by [ENTER]:"
-read -r webPath
+read -r -e webPath
 
 webPath=$(echo "${webPath}" | sed 's:/*$::')
-webPath=${webPath%/}
+webPath="${webPath%/}"
 
 if [[ "${serverType}" == "local" ]]; then
   currentUser=$(whoami)
@@ -82,12 +82,12 @@ if [[ "${serverType}" == "local" ]]; then
   #@todo: SSH handling
 fi
 
-if [[ ${webUser} != "${currentUser}" ]] || [[ ${webGroup} != "${currentGroup}" ]]; then
+if [[ "${webUser}" != "${currentUser}" ]] || [[ "${webGroup}" != "${currentGroup}" ]]; then
   echo "The magento root path is owned by user: ${webUser}:${webGroup}. Do you want to use this user as deployment user? Sudo rights would be required for current user: ${currentUser}:${currentGroup}."
   select yesNo in "Yes" "No"; do
-    case ${yesNo} in
+    case "${yesNo}" in
       Yes ) break;;
-      No ) webUser=${currentUser}; webGroup=${currentGroup} break;;
+      No ) webUser="${currentUser}"; webGroup="${currentGroup}" break;;
     esac
   done
 fi

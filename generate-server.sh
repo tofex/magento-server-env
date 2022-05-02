@@ -68,7 +68,7 @@ fi
 
 echo ""
 echo "Please specify the web path of Magento, followed by [ENTER]:"
-read -r webPath
+read -r -e webPath
 
 webPath=$(echo "${webPath}" | sed 's:/*$::')
 webPath="${webPath%/}"
