@@ -9,6 +9,7 @@ usage: ${scriptName} options
 
 OPTIONS:
   -h  Show this message
+  -e  PHP executable (optional)
 
 Example: ${scriptName}
 EOF
@@ -19,9 +20,12 @@ trim()
   echo -n "$1" | xargs
 }
 
-while getopts h? option; do
+phpExecutable="php"
+
+while getopts he:? option; do
   case "${option}" in
     h) usage; exit 1;;
+    e) phpExecutable=$(trim "$OPTARG");;
     ?) usage; exit 1;;
   esac
 done
@@ -52,20 +56,25 @@ for server in "${serverList[@]}"; do
 
       if [[ -f "${webPath}/app/etc/local.xml" ]]; then
         magentoVersion=1
-      else
+      elif [[ -f "${webPath}/app/etc/env.php" ]]; then
         magentoVersion=2
+      else
+        echo "Could not determine Magento version."
+        continue
       fi
 
       echo -n "Extracting Magento version: "
       magentoSpecificVersion=$("${currentPath}/../ops/get-magento-version-local.sh" \
         -w "${webPath}" \
         -u "${webUser}" \
-        -g "${webGroup}")
+        -g "${webGroup}" \
+        -e "${phpExecutable}")
+      echo "${magentoSpecificVersion}"
 
       echo -n "Extracting Magento edition: "
       if [[ "${magentoVersion}" == 1 ]]; then
-        magentoEdition=$(cd "${webPath}"; php -r "require 'app/Mage.php'; echo Mage::getEdition();")
-      else
+        magentoEdition=$(cd "${webPath}"; "${phpExecutable}" -r "require 'app/Mage.php'; echo Mage::getEdition();")
+      elif [[ "${magentoVersion}" == 2 ]]; then
         magentoEdition=$(cd "${webPath}"; composer licenses 2>/dev/null | grep Name: | cut -d'-' -f2)
       fi
       magentoEdition=$(echo "${magentoEdition}" | tr '[:upper:]' '[:lower:]')
@@ -74,11 +83,11 @@ for server in "${serverList[@]}"; do
       echo -n "Extracting Magento mode: "
       if [[ "${magentoVersion}" == 1 ]]; then
         magentoMode="production"
-      else
-        if [[ $(cd "${webPath}"; bin/magento deploy:mode:show | grep -c "production" | cat) -gt 0 ]]; then
+      elif [[ "${magentoVersion}" == 2 ]]; then
+        if [[ $(cd "${webPath}"; "${phpExecutable}" bin/magento deploy:mode:show | grep -c "production" | cat) -gt 0 ]]; then
           magentoMode="production"
         else
-          if [[ $(cd "${webPath}"; bin/magento deploy:mode:show | grep -c "developer" | cat) -gt 0 ]]; then
+          if [[ $(cd "${webPath}"; "${phpExecutable}" bin/magento deploy:mode:show | grep -c "developer" | cat) -gt 0 ]]; then
             magentoMode="developer"
           else
             magentoMode="default"
@@ -90,10 +99,10 @@ for server in "${serverList[@]}"; do
       echo -n "Extracting Magento crypt key: "
       if [[ "${magentoVersion}" == 1 ]]; then
         # shellcheck disable=SC2016
-        cryptKey=$(cd "${webPath}"; php -r '$config=simplexml_load_file("app/etc/local.xml",null,LIBXML_NOCDATA);echo (string)$config->global->crypt->key;')
-      else
+        cryptKey=$(cd "${webPath}"; "${phpExecutable}" -r '$config=simplexml_load_file("app/etc/local.xml",null,LIBXML_NOCDATA);echo (string)$config->global->crypt->key;')
+      elif [[ "${magentoVersion}" == 2 ]]; then
         # shellcheck disable=SC2016
-        cryptKey=$(cd "${webPath}"; php -r '$config=include "app/etc/env.php"; echo $config["crypt"]["key"];')
+        cryptKey=$(cd "${webPath}"; "${phpExecutable}" -r '$config=include "app/etc/env.php"; echo $config["crypt"]["key"];')
       fi
       echo "${cryptKey}"
 
