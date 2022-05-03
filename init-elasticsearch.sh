@@ -92,4 +92,4 @@ fi
 
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchServerName}" elasticsearch "${elasticsearchId}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" version "${version}"
-ini-set "${currentPath}/../env.properties" yes "${elasticsearchServerName}" port "${port}"
+ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" port "${port}"
