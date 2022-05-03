@@ -32,7 +32,7 @@ cd "${currentPath}"
 
 echo ""
 echo "Please specify the name of the system, followed by [ENTER]:"
-read -r -i server -e systemName
+read -r -i system -e systemName
 
 echo ""
 echo "Please specify the id of the project, followed by [ENTER]:"

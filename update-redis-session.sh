@@ -49,7 +49,8 @@ currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "${currentPath}"
 
 if [[ ! -f "${currentPath}/../env.properties" ]]; then
-  touch "${currentPath}/../env.properties"
+  echo "No environment specified!"
+  exit 1
 fi
 
 serverList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "server") )
