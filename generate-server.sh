@@ -66,8 +66,8 @@ elif [[ "${serverType}" == "ssh" ]]; then
   read -r sshUser
 fi
 
-parentPath=$(dirname "${currentPath}"])
-parentPath=$(dirname "${parentPath}"])
+parentPath=$(dirname "${currentPath}")
+parentPath=$(dirname "${parentPath}")
 
 echo ""
 echo "Please specify the web path of Magento, followed by [ENTER]:"
