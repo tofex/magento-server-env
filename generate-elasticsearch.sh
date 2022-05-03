@@ -75,7 +75,7 @@ for server in "${serverList[@]}"; do
           echo "${elasticsearchHostName}"
 
           echo -n "Extracting Elasticsearch port: "
-          elasticsearchPort=$(php read_config_value.php "${webPath}" Pfad: catalog/search/elasticsearch6_server_port)
+          elasticsearchPort=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch6_server_port)
           echo "${elasticsearchPort}"
         elif [[ "${searchEngine}" == "elasticsearch7" ]]; then
           echo -n "Extracting Elasticsearch host name: "
@@ -83,7 +83,7 @@ for server in "${serverList[@]}"; do
           echo "${elasticsearchHostName}"
 
           echo -n "Extracting Elasticsearch port: "
-          elasticsearchPort=$(php read_config_value.php "${webPath}" Pfad: catalog/search/elasticsearch7_server_port)
+          elasticsearchPort=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_server_port)
           echo "${elasticsearchPort}"
         elif [[ "${searchEngine}" == "amasty_elastic" ]]; then
           echo -n "Extracting Elasticsearch host name: "
@@ -91,7 +91,7 @@ for server in "${serverList[@]}"; do
           echo "${elasticsearchHostName}"
 
           echo -n "Extracting Elasticsearch port: "
-          elasticsearchPort=$(php read_config_value.php "${webPath}" Pfad: amasty_elastic/connection/server_port)
+          elasticsearchPort=$(php read_config_value.php "${webPath}" amasty_elastic/connection/server_port)
           echo "${elasticsearchPort}"
         fi
 
