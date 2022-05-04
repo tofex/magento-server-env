@@ -88,15 +88,16 @@ for server in "${serverList[@]}"; do
       fi
       echo "${databaseName}"
 
-      if [[ "${databaseHost}" == "localhost" ]]; then
-        if [[ $(mysql -V 2>/dev/null | grep -c MariaDB) == 1 ]]; then
-          databaseType="mariadb"
-          databaseVersion=$(mysql -V 2>/dev/null | grep MariaDB | cut -d' ' -f6 | sed 's/\.[0-9]*-MariaDB,//')
-        elif [[ $(mysql -V 2>/dev/null | grep -c "Distrib [0-9]*\.[0-9]*\.[0-9]*,") == 1 ]]; then
-          databaseType="mysql"
-          databaseVersion=$(mysql -V 2>/dev/null | cut -d' ' -f6 | sed 's/\.[0-9]*,//')
-        fi
+      export MYSQL_PWD="${databasePassword}"
+      databaseVersion=$(mysql -h "${databaseHost}" -P "${databasePort}" -u "${databaseUser}" -sN -e  "SELECT VERSION();")
+
+      if [[ $(echo "${databaseVersion}" | grep MariaDB | wc -l) == 1 ]]; then
+        databaseType="mariadb"
+      elif [[ $(mysql -V 2>/dev/null | grep -c "Distrib [0-9]*\.[0-9]*\.[0-9]*,") == 1 ]]; then
+        databaseType="mysql"
       fi
+      databaseVersion=$(echo "${databaseVersion}" | grep -Po '^[0-9]+\.[0-9]+\.[0-9]+')
+      databaseVersion="${databaseVersion%.*}"
 
       ./init-database.sh \
         -o "${databaseHost}" \
