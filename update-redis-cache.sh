@@ -77,15 +77,15 @@ for server in "${serverList[@]}"; do
       ini-set "${currentPath}/../env.properties" yes "${redisId}" password "${password}"
     fi
     if [[ -n "${database}" ]]; then
-      echo "--- Updating Redis cache database on server: ${database} ---"
+      echo "--- Updating Redis cache database on server: ${server} ---"
       ini-set "${currentPath}/../env.properties" yes "${redisId}" database "${database}"
     fi
     if [[ -n "${cachePrefix}" ]]; then
-      echo "--- Updating Redis cache prefix on server: ${database} ---"
+      echo "--- Updating Redis cache prefix on server: ${server} ---"
       ini-set "${currentPath}/../env.properties" yes "${redisId}" prefix "${cachePrefix}"
     fi
     if [[ -n "${className}" ]]; then
-      echo "--- Updating Redis cache class name on server: ${database} ---"
+      echo "--- Updating Redis cache class name on server: ${server} ---"
       ini-set "${currentPath}/../env.properties" yes "${redisId}" prefix "${className}"
     fi
   fi

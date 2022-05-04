@@ -71,7 +71,7 @@ for server in "${serverList[@]}"; do
       ini-set "${currentPath}/../env.properties" yes "${redisId}" password "${password}"
     fi
     if [[ -n "${database}" ]]; then
-      echo "--- Updating Redis session database on server: ${database} ---"
+      echo "--- Updating Redis session database on server: ${server} ---"
       ini-set "${currentPath}/../env.properties" yes "${redisId}" database "${database}"
     fi
   fi
