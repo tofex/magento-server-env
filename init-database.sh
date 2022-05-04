@@ -91,10 +91,6 @@ if [[ -z "${name}" ]]; then
   exit 1
 fi
 
-if [[ -z "${upgradeServer}" ]]; then
-  upgradeServer="server"
-fi
-
 currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd "${currentPath}"
@@ -131,9 +127,12 @@ if [[ -z "${databaseServerName}" ]]; then
   exit 1
 fi
 
+if [[ -z "${upgradeServer}" ]]; then
+  upgradeServer="server"
+fi
+
 if [[ -z "${upgradeServerName}" ]]; then
-  echo "No server found for upgrade server!"
-  exit 1
+  upgradeServer="${databaseServerName}"
 fi
 
 ini-set "${currentPath}/../env.properties" yes "${databaseServerName}" database "${databaseId}"
