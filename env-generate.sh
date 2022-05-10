@@ -7,7 +7,7 @@ cd "${currentPath}"
 if [[ -f "${currentPath}/../env.properties" ]]; then
   echo "Do you wish to overwrite the environment properties?"
   select yesNo in "Yes" "No"; do
-    case ${yesNo} in
+    case "${yesNo}" in
       Yes ) break;;
       No ) exit;;
     esac
@@ -19,7 +19,7 @@ rm -rf "${currentPath}/../env.properties"
 touch "${currentPath}/../env.properties"
 
 phpExecutable=$(which php)
-availablePhpExecutables=( $(locate bin/php | grep -E php$) )
+availablePhpExecutables=( $(locate bin/php | cat | grep -E php$ | cat) )
 
 if [[ "${#availablePhpExecutables[@]}" -gt 1 ]]; then
   echo "Found multiple PHP executables:"
