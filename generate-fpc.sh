@@ -93,6 +93,8 @@ for server in "${serverList[@]}"; do
           redisFullPageCacheClassName=$(php read_config_value.php "${webPath}" global/full_page_cache/backend)
           echo "${redisFullPageCacheClassName}"
 
+          redisFullPageCacheClassName=$(echo "${redisFullPageCacheClassName}" | sed -e 's/\\/\\\\/g')
+
           ./init-redis-fpc.sh \
             -o "${redisFullPageCacheHost}" \
             -v "${redisFullPageCacheVersion}" \
@@ -111,7 +113,7 @@ for server in "${serverList[@]}"; do
 
         echo -n "Extracting FPC type: "
         fpcBackend=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend)
-        if [[ "${fpcBackend}" == "Cm_Cache_Backend_Redis" ]]; then
+        if [[ "${fpcBackend}" == "Cm_Cache_Backend_Redis" ]] || [[ "${fpcBackend}" == "Magento\Framework\Cache\Backend\Redis" ]]; then
           echo "Redis"
 
           echo -n "Extracting Redis host: "
@@ -150,6 +152,8 @@ for server in "${serverList[@]}"; do
           echo -n "Extracting Redis class name: "
           redisFullPageCacheClassName=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend)
           echo "${redisFullPageCacheClassName}"
+
+          redisFullPageCacheClassName=$(echo "${redisFullPageCacheClassName}" | sed -e 's/\\/\\\\/g')
 
           ./init-redis-fpc.sh \
             -o "${redisFullPageCacheHost}" \

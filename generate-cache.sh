@@ -96,6 +96,8 @@ for server in "${serverList[@]}"; do
           redisCacheClassName=$(php read_config_value.php "${webPath}" global/cache/backend)
           echo "${redisCacheClassName}"
 
+          redisCacheClassName=$(echo "${redisCacheClassName}" | sed -e 's/\\/\\\\/g')
+
           ./init-redis-cache.sh \
             -o "${redisCacheHost}" \
             -v "${redisCacheVersion}" \
@@ -115,7 +117,7 @@ for server in "${serverList[@]}"; do
 
         echo -n "Extracting cache type: "
         cacheBackend=$(php read_config_value.php "${webPath}" cache/frontend/default/backend)
-        if [[ "${cacheBackend}" == "Cm_Cache_Backend_Redis" ]]; then
+        if [[ "${cacheBackend}" == "Cm_Cache_Backend_Redis" ]] || [[ "${cacheBackend}" == "Magento\Framework\Cache\Backend\Redis" ]]; then
           echo "Redis"
 
           echo -n "Extracting Redis host: "
@@ -154,6 +156,8 @@ for server in "${serverList[@]}"; do
           echo -n "Extracting Redis class name: "
           redisCacheClassName=$(php read_config_value.php "${webPath}" cache/frontend/default/backend)
           echo "${redisCacheClassName}"
+
+          redisCacheClassName=$(echo "${redisCacheClassName}" | sed -e 's/\\/\\\\/g')
 
           ./init-redis-cache.sh \
             -o "${redisCacheHost}" \
