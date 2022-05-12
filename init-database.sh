@@ -135,6 +135,11 @@ if [[ -z "${upgradeServerName}" ]]; then
   upgradeServer="${databaseServerName}"
 fi
 
+if [[ -z "${upgradeServerName}" ]]; then
+  echo "No server found for upgrading database"
+  exit 1
+fi
+
 ini-set "${currentPath}/../env.properties" yes "${databaseServerName}" database "${databaseId}"
 ini-set "${currentPath}/../env.properties" yes "${databaseId}" type "${type}"
 ini-set "${currentPath}/../env.properties" yes "${databaseId}" version "${version}"
