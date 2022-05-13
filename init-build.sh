@@ -38,9 +38,10 @@ composerPassword=
 buildMagento=
 additionalComposerProjects=
 gitUrl=
+gitUser=
 gitComposer=
 
-while getopts hn:b:t:c:u:p:m:a:g:i:? option; do
+while getopts hn:b:t:c:u:p:m:a:g:i:s:? option; do
   case "${option}" in
     h) usage; exit 1;;
     n) serverName=$(trim "$OPTARG");;
@@ -52,6 +53,7 @@ while getopts hn:b:t:c:u:p:m:a:g:i:? option; do
     m) buildMagento=$(trim "$OPTARG");;
     a) additionalComposerProjects=$(trim "$OPTARG");;
     g) gitUrl=$(trim "$OPTARG");;
+    s) gitUser=$(trim "$OPTARG");;
     i) gitComposer=$(trim "$OPTARG");;
     ?) usage; exit 1;;
   esac
@@ -107,6 +109,10 @@ if [[ "${type}" == "git" ]]; then
     exit 1
   fi
 
+  if [[ -z "${gitUser}" ]]; then
+    gitUser=$(whoami)
+  fi
+
   if [[ -z "${gitComposer}" ]]; then
     gitComposer="no"
   fi
@@ -142,5 +148,6 @@ if [[ "${type}" == "composer" ]]; then
 elif [[ "${type}" == "git" ]]; then
   ini-set "${currentPath}/../env.properties" yes build type git
   ini-set "${currentPath}/../env.properties" yes build gitUrl "${gitUrl}"
+  ini-set "${currentPath}/../env.properties" yes build user "${gitUser}"
   ini-set "${currentPath}/../env.properties" yes build composer "${gitComposer}"
 fi

@@ -113,6 +113,49 @@ else
     read -r gitUrl
     ini-set ../env.properties yes build gitUrl "${gitUrl}"
 
+    if [[ "${gitUrl}" =~ ^git.* ]]; then
+      useCurrentUser=0
+      echo ""
+      echo "Use the current user to access the Git repository?"
+      select yesNo in "Yes" "No"; do
+        case "${yesNo}" in
+          Yes ) useCurrentUser=1; break;;
+          No ) break;;
+        esac
+      done
+
+      currentUser=$(whoami)
+
+      if [[ "${useCurrentUser}" == 1 ]]; then
+        gitUser="${currentUser}"
+
+        home=$(awk -F: -v u="${gitUser}" '$1==u{print $6}' /etc/passwd)
+
+        if [[ ! -f "${home}/.ssh/id_rsa.pub" ]]; then
+          addKey=0
+          echo ""
+          echo "Could not find public key of user ${gitUser}. Do you wish to create a key?"
+          select yesNo in "Yes" "No"; do
+            case "${yesNo}" in
+              Yes ) addKey=1; break;;
+              No ) break;;
+            esac
+          done
+
+          if [[ "${addKey}" == 1 ]]; then
+            echo "Generating SSH key in directory: ${home}/.ssh"
+            ssh-keygen -b 4096 -t rsa -f "${home}/.ssh/id_rsa" -q -N ""
+          fi
+        fi
+      else
+        echo ""
+        echo "Please specify the user to access the Git repository, followed by [ENTER]:"
+        read -r gitUrl
+      fi
+
+      ini-set ../env.properties yes build user "${gitUser}"
+    fi
+
     useGitBuildComposer=0
     echo ""
     echo "Do you wish to run install composer requirements during build process?"
