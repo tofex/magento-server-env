@@ -9,7 +9,7 @@ usage: ${scriptName} options
 
 OPTIONS:
   -h  Show this message
-  -n  Server name, default: server
+  -n  Server name
   -t  Type, default: local
   -o  Host if type != local
   -p  Web path
@@ -49,7 +49,8 @@ while getopts hn:t:o:s:p:u:g:? option; do
 done
 
 if [[ -z "${serverName}" ]]; then
-  serverName="server"
+  echo "No server name specified!"
+  exit 1
 fi
 
 if [[ -z "${type}" ]]; then

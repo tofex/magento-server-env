@@ -123,6 +123,48 @@ for server in "${serverList[@]}"; do
 done
 
 if [[ -z "${databaseServerName}" ]]; then
+  echo ""
+  echo "No server found for database host!"
+
+  addServer=0
+  echo ""
+  echo "Do you wish to add a new server with the host name ${host}?"
+  select yesNo in "Yes" "No"; do
+    case "${yesNo}" in
+      Yes ) addServer=1; break;;
+      No ) break;;
+    esac
+  done
+
+  if [[ "${addServer}" == 1 ]]; then
+    echo ""
+    echo "Please specify the server name, followed by [ENTER]:"
+    read -r -i "database_server" -e databaseServerName
+
+    sshUser=$(whoami)
+    echo ""
+    echo "Please specify the SSH user, followed by [ENTER]:"
+    read -r -i "${sshUser}" -e sshUser
+
+    if [[ -z "${databaseServerName}" ]]; then
+      echo "No server name specified!"
+      exit 1
+    fi
+
+    if [[ -z "${sshUser}" ]]; then
+      echo "No SSH user specified!"
+      exit 1
+    fi
+
+    "${currentPath}/init-server.sh" \
+      -n "${databaseServerName}" \
+      -t ssh \
+      -o "${host}" \
+      -s "${sshUser}"
+  fi
+fi
+
+if [[ -z "${databaseServerName}" ]]; then
   echo "No server found for database host!"
   exit 1
 fi

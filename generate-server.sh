@@ -20,6 +20,7 @@ trim()
   echo -n "$1" | xargs
 }
 
+serverName="server"
 serverType=
 
 while getopts ht:? option; do
@@ -96,6 +97,7 @@ if [[ "${webUser}" != "${currentUser}" ]] || [[ "${webGroup}" != "${currentGroup
 fi
 
 ./init-server.sh \
+  -n "${serverName}" \
   -t "${serverType}" \
   -o "${host}" \
   -s "${sshUser}" \

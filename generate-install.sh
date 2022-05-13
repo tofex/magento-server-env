@@ -75,7 +75,7 @@ for server in "${serverList[@]}"; do
       if [[ "${magentoVersion}" == 1 ]]; then
         magentoEdition=$(cd "${webPath}"; "${phpExecutable}" -r "require 'app/Mage.php'; echo Mage::getEdition();")
       elif [[ "${magentoVersion}" == 2 ]]; then
-        magentoEdition=$(cd "${webPath}"; composer licenses 2>/dev/null | grep Name: | cut -d'-' -f2)
+        magentoEdition=$(cd "${webPath}"; composer licenses 2>/dev/null | grep "magento/product" | cut -d'-' -f2)
       fi
       magentoEdition=$(echo "${magentoEdition}" | tr '[:upper:]' '[:lower:]')
       echo "${magentoEdition}"
