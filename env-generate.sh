@@ -51,6 +51,7 @@ fi
 
 "${currentPath}/generate-server.sh" -t local
 "${currentPath}/generate-web-server.sh" -t local -c
+"${currentPath}/generate-links.sh" -t local -c
 "${currentPath}/generate-install.sh" -e "${phpExecutable}"
 "${currentPath}/generate-database.sh"
 "${currentPath}/generate-cache.sh"
