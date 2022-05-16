@@ -1,11 +1,11 @@
 {
   "name": "tofex/magento-server-env",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "type": "magento-server-component",
   "description": "Tofex Magento Server Environment",
   "license": "MIT",
   "require": {
-    "php": ">=7.2.0"
+    "php": ">=7.0"
   },
   "extra": {
     "installer-name": "env"
