@@ -74,8 +74,8 @@ if [[ -z "${magentoMode}" ]]; then
   magentoMode="developer"
 fi
 
-if [[ "${magentoMode}" != "developer" ]] && [[ "${magentoMode}" != "production" ]]; then
-  echo "Invalid Magento mode (developer or production) specified!"
+if [[ "${magentoMode}" != "default" ]] && [[ "${magentoMode}" != "production" ]] && [[ "${magentoMode}" != "developer" ]]; then
+  echo "Invalid Magento mode (default, developer or production) specified!"
   exit 1
 fi
 
