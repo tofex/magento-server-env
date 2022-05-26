@@ -93,7 +93,7 @@ if [[ "${type}" != "local" ]]; then
   ini-set "${currentPath}/../env.properties" yes "${serverName}" host "${host}"
 fi
 if [[ "${type}" == "ssh" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${serverName}" sshUser "${sshUser}"
+  ini-set "${currentPath}/../env.properties" yes "${serverName}" user "${sshUser}"
 fi
 if [[ -n "${webPath}" ]] && [[ "${webPath}" != "-" ]]; then
   ini-set "${currentPath}/../env.properties" yes "${serverName}" webPath "${webPath}"
