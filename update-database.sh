@@ -46,6 +46,10 @@ while getopts hi:t:v:o:p:u:s:d:g:? option; do
   esac
 done
 
+if [[ -z "${databaseId}" ]]; then
+  databaseId="database"
+fi
+
 currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd "${currentPath}"
