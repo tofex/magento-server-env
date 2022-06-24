@@ -64,11 +64,11 @@ for server in "${serverList[@]}"; do
       fi
 
       echo -n "Extracting Magento version: "
-      magentoSpecificVersion=$("${currentPath}/../ops/get-magento-version-local.sh" \
+      magentoSpecificVersion=$("${currentPath}/../ops/get-magento-version/web-server.sh" \
         -w "${webPath}" \
         -u "${webUser}" \
         -g "${webGroup}" \
-        -e "${phpExecutable}")
+        -b "${phpExecutable}")
       echo "${magentoSpecificVersion}"
 
       echo -n "Extracting Magento edition: "
