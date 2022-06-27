@@ -24,16 +24,16 @@ trim()
 }
 
 elasticsearchId=
-host=
 version=
+host=
 port=
 
-while getopts hi:o:v:p:? option; do
+while getopts hi:v:o:p:? option; do
   case "${option}" in
     h) usage; exit 1;;
     i) elasticsearchId=$(trim "$OPTARG");;
-    o) host=$(trim "$OPTARG");;
     v) version=$(trim "$OPTARG");;
+    o) host=$(trim "$OPTARG");;
     p) port=$(trim "$OPTARG");;
     ?) usage; exit 1;;
   esac
@@ -43,13 +43,13 @@ if [[ -z "${elasticsearchId}" ]]; then
   elasticsearchId="elasticsearch"
 fi
 
-if [[ -z "${host}" ]]; then
-  host="localhost"
-fi
-
 if [[ -z "${version}" ]]; then
   echo "No version specified!"
   exit 1
+fi
+
+if [[ -z "${host}" ]]; then
+  host="localhost"
 fi
 
 if [[ -z "${port}" ]]; then

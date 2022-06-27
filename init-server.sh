@@ -12,10 +12,10 @@ OPTIONS:
   -n  Server name
   -t  Type, default: local
   -o  Host if type != local
-  -p  Web path
-  -u  Web user, default: www-data
-  -g  Web group, default: www-data
   -s  SSH User if type == ssh
+  -p  Web path (optional)
+  -u  Web user (if web path specified), default: www-data
+  -g  Web group (if web path specified), default: www-data
 
 Example: ${scriptName} -n server
 EOF
