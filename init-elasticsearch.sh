@@ -13,6 +13,8 @@ OPTIONS:
   -o  Elasticsearch host, default: localhost
   -v  Elasticsearch version
   -p  Elasticsearch port, default: 9200
+  -u  User name if behind basic auth
+  -p  Password if behind basic auth
 
 Example: ${scriptName} -v 7.9 -p 9200
 EOF
@@ -27,14 +29,18 @@ elasticsearchId=
 version=
 host=
 port=
+user=
+password=
 
-while getopts hi:v:o:p:? option; do
+while getopts hi:v:o:p:u:s:? option; do
   case "${option}" in
     h) usage; exit 1;;
     i) elasticsearchId=$(trim "$OPTARG");;
     v) version=$(trim "$OPTARG");;
     o) host=$(trim "$OPTARG");;
     p) port=$(trim "$OPTARG");;
+    u) user=$(trim "$OPTARG");;
+    s) password=$(trim "$OPTARG");;
     ?) usage; exit 1;;
   esac
 done
@@ -93,3 +99,7 @@ fi
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchServerName}" elasticsearch "${elasticsearchId}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" version "${version}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" port "${port}"
+if [[ -n "${user}" ]] && [[ -n "${password}" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" user "${user}"
+  ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" password "${password}"
+fi
