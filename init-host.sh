@@ -103,6 +103,21 @@ if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
 fi
 
+hostList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "host") )
+
+for hostName in "${hostList[@]}"; do
+  hostScope=$(ini-parse "${currentPath}/../env.properties" "yes" "${hostName}" "scope")
+  hostCode=$(ini-parse "${currentPath}/../env.properties" "yes" "${hostName}" "code")
+
+  if [[ "${hostScope}" == "${scope}" ]] && [[ "${hostCode}" == "${code}" ]]; then
+    ini-set "${currentPath}/../env.properties" yes "${hostName}" vhost "${virtualHost}"
+    ini-set "${currentPath}/../env.properties" yes "${hostName}" sslTerminated "${sslTerminated}"
+    ini-set "${currentPath}/../env.properties" yes "${hostName}" forceSsl "${forceSsl}"
+
+    exit 0
+  fi
+done
+
 ini-set "${currentPath}/../env.properties" no "${systemName}" host "${hostId}"
 ini-set "${currentPath}/../env.properties" yes "${hostId}" vhost "${virtualHost}"
 ini-set "${currentPath}/../env.properties" yes "${hostId}" scope "${scope}"
