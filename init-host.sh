@@ -103,7 +103,7 @@ if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
 fi
 
-hostList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "host") )
+hostList=( $(ini-parse "${currentPath}/../env.properties" "no" "system" "host") )
 
 for hostName in "${hostList[@]}"; do
   hostScope=$(ini-parse "${currentPath}/../env.properties" "yes" "${hostName}" "scope")
