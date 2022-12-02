@@ -79,7 +79,7 @@ if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
 fi
 
-serverList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "server") )
+serverList=( $(ini-parse "${currentPath}/../env.properties" "no" "system" "server") )
 if [[ "${#serverList[@]}" -eq 0 ]]; then
   echo "No servers specified!"
   exit 1

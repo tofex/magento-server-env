@@ -12,11 +12,11 @@ OPTIONS:
   -i  Redis id, default: redis_session
   -o  Redis host, default: localhost
   -v  Redis version
-  -p  Redis port, default: 6379
+  -p  Redis port, default: 6381
   -d  Database number, default: 0
   -s  Redis password (optional)
 
-Example: ${scriptName} -v 6.0 -p 6379 -d 0
+Example: ${scriptName} -v 6.0 -p 6381 -d 0
 EOF
 }
 
@@ -59,7 +59,7 @@ if [[ -z "${version}" ]]; then
 fi
 
 if [[ -z "${port}" ]]; then
-  port="6379"
+  port="6381"
 fi
 
 if [[ -z "${database}" ]]; then

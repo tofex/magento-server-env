@@ -12,13 +12,13 @@ OPTIONS:
   -i  Redis id, default: redis_fpc
   -o  Redis host, default: localhost
   -v  Redis version
-  -p  Redis port, default: 6379
+  -p  Redis port, default: 6380
   -d  Database number, default: 0
   -s  Redis password (optional)
   -r  Cache prefix (optional)
   -c  Name of PHP class (optional)
 
-Example: ${scriptName} -v 6.0 -p 6379 -d 0
+Example: ${scriptName} -v 6.0 -p 6380 -d 0
 EOF
 }
 
@@ -65,7 +65,7 @@ if [[ -z "${version}" ]]; then
 fi
 
 if [[ -z "${port}" ]]; then
-  port="6379"
+  port="6380"
 fi
 
 if [[ -z "${database}" ]]; then

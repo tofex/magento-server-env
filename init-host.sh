@@ -16,6 +16,12 @@ OPTIONS:
   -c  Code
   -t  SSL terminated (yes or no), default: no
   -f  Force SSL (yes or no), default: yes
+  -e  SSL certification file (optional)
+  -k  SSL key file (optional)
+  -r  Require IP list (optional)
+  -a  Allow Urls (optional)
+  -b  Basic Auth User Name (optional)
+  -w  Basic Auth Password (optional)
 
 Example: ${scriptName} -i dev_magento2_de -v dev.magento2.de -s website -c base -t no -f yes
 EOF
@@ -33,8 +39,14 @@ scope=
 code=
 sslTerminated=
 forceSsl=
+sslCertFile=
+sslKeyFile=
+requireIp=
+allowUrl=
+basicAuthUserName=
+basicAuthPassword=
 
-while getopts hn:i:v:s:c:t:f:? option; do
+while getopts hn:i:v:s:c:t:f:e:k:r:a:b:w:? option; do
   case "${option}" in
     h) usage; exit 1;;
     n) systemName=$(trim "$OPTARG");;
@@ -44,6 +56,12 @@ while getopts hn:i:v:s:c:t:f:? option; do
     c) code=$(trim "$OPTARG");;
     t) sslTerminated=$(trim "$OPTARG");;
     f) forceSsl=$(trim "$OPTARG");;
+    e) sslCertFile=$(trim "$OPTARG");;
+    k) sslKeyFile=$(trim "$OPTARG");;
+    r) requireIp=$(trim "$OPTARG");;
+    a) allowUrl=$(trim "$OPTARG");;
+    b) basicAuthUserName=$(trim "$OPTARG");;
+    w) basicAuthPassword=$(trim "$OPTARG");;
     ?) usage; exit 1;;
   esac
 done
@@ -113,7 +131,6 @@ for hostName in "${hostList[@]}"; do
     ini-set "${currentPath}/../env.properties" yes "${hostName}" vhost "${virtualHost}"
     ini-set "${currentPath}/../env.properties" yes "${hostName}" sslTerminated "${sslTerminated}"
     ini-set "${currentPath}/../env.properties" yes "${hostName}" forceSsl "${forceSsl}"
-
     exit 0
   fi
 done
@@ -124,3 +141,21 @@ ini-set "${currentPath}/../env.properties" yes "${hostId}" scope "${scope}"
 ini-set "${currentPath}/../env.properties" yes "${hostId}" code "${code}"
 ini-set "${currentPath}/../env.properties" yes "${hostId}" sslTerminated "${sslTerminated}"
 ini-set "${currentPath}/../env.properties" yes "${hostId}" forceSsl "${forceSsl}"
+if [[ -n "${sslCertFile}" ]] && [[ "${sslCertFile}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${hostId}" sslCertFile "${sslCertFile}"
+fi
+if [[ -n "${sslKeyFile}" ]] && [[ "${sslKeyFile}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${hostId}" sslKeyFile "${sslKeyFile}"
+fi
+if [[ -n "${requireIp}" ]] && [[ "${requireIp}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${hostId}" requireIp "${requireIp}"
+fi
+if [[ -n "${allowUrl}" ]] && [[ "${allowUrl}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${hostId}" allowUrl "${allowUrl}"
+fi
+if [[ -n "${basicAuthUserName}" ]] && [[ "${basicAuthUserName}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${hostId}" basicAuthUserName "${basicAuthUserName}"
+fi
+if [[ -n "${basicAuthPassword}" ]] && [[ "${basicAuthPassword}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${hostId}" basicAuthPassword "${basicAuthPassword}"
+fi

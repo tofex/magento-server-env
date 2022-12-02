@@ -14,7 +14,7 @@ OPTIONS:
   -v  Elasticsearch version
   -p  Elasticsearch port, default: 9200
   -u  User name if behind basic auth
-  -p  Password if behind basic auth
+  -s  Password if behind basic auth
 
 Example: ${scriptName} -v 7.9 -p 9200
 EOF

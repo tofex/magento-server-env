@@ -14,7 +14,6 @@ OPTIONS:
   -v  Redis version
   -p  Redis port, default: 6379
   -d  Database number, default: 0
-  -c  Class name (optional)
   -s  Redis password (optional)
   -r  Cache prefix (optional)
   -c  Name of PHP class (optional)

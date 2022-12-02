@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -26,13 +27,9 @@ while getopts h? option; do
   esac
 done
 
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
-
-echo ""
-echo "Please specify the name of the system, followed by [ENTER]:"
-read -i "system" -e -r systemName
+if [[ ! -f "${currentPath}/../env.properties" ]]; then
+  touch "${currentPath}/../env.properties"
+fi
 
 echo ""
 echo "Please specify the name of the host, followed by [ENTER]:"
@@ -41,10 +38,6 @@ read -r -e hostName
 echo ""
 echo "Please specify the scope of the host (website or store), followed by [ENTER]:"
 read -r -e hostScope
-
-echo ""
-echo "Please specify the code of the host scope, followed by [ENTER]:"
-read -r -e hostCode
 
 echo ""
 echo "Please specify the code of the host scope, followed by [ENTER]:"
@@ -70,13 +63,44 @@ select yesNo in "Yes" "No"; do
   esac
 done
 
+basicAuth="no"
+echo ""
+echo "Use basic auth?"
+select yesNo in "Yes" "No"; do
+  case "${yesNo}" in
+    Yes ) basicAuth="yes"; break;;
+    No ) break;;
+  esac
+done
+
+if [[ "${basicAuth}" == "yes" ]]; then
+  echo ""
+  echo "Please specify the user name of the basic auth, followed by [ENTER]:"
+  read -r -e basicAuthUserName
+
+  echo ""
+  echo "Please specify the password of the basic auth, followed by [ENTER]:"
+  read -r -e basicAuthPassword
+fi
+
 hostId=$(echo "${hostName}" | sed "s/[^[:alnum:]]/_/g")
 
-./init-host.sh \
-  -n "${systemName}" \
-  -i "${hostId}" \
-  -v "${hostName}" \
-  -s "${hostScope}" \
-  -c "${hostCode}" \
-  -t "${sslTerminated}" \
-  -f "${forceSsl}"
+if [[ "${basicAuth}" == "yes" ]]; then
+  "${currentPath}/init-host.sh" \
+    -i "${hostId}" \
+    -v "${hostName}" \
+    -s "${hostScope}" \
+    -c "${hostCode}" \
+    -t "${sslTerminated}" \
+    -f "${forceSsl}" \
+    -b "${basicAuthUserName}" \
+    -w "${basicAuthPassword}"
+else
+  "${currentPath}/init-host.sh" \
+    -i "${hostId}" \
+    -v "${hostName}" \
+    -s "${hostScope}" \
+    -c "${hostCode}" \
+    -t "${sslTerminated}" \
+    -f "${forceSsl}"
+fi
