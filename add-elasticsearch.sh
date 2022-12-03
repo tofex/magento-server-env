@@ -67,6 +67,10 @@ echo ""
 echo "Please specify the elasticsearch port, followed by [ENTER]:"
 read -r -i "${elasticsearchPort}" -e elasticsearchPort
 
+echo ""
+echo "Please specify the elasticsearch prefix, followed by [ENTER]:"
+read -r -i "magento" -e elasticsearchPrefix
+
 if [[ "${elasticsearchServerType}" == "local" ]]; then
   "${currentPath}/init-server.sh" \
     -n "${elasticsearchServerName}" \
@@ -82,4 +86,5 @@ fi
 "${currentPath}/init-elasticsearch.sh" \
   -o "${elasticsearchServerHost}" \
   -v "${elasticsearchVersion}" \
-  -p "${elasticsearchPort}"
+  -p "${elasticsearchPort}" \
+  -x "${elasticsearchPrefix}"

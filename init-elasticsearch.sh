@@ -13,6 +13,7 @@ OPTIONS:
   -o  Elasticsearch host, default: localhost
   -v  Elasticsearch version
   -p  Elasticsearch port, default: 9200
+  -x  Elasticsearch prefix, default: magento
   -u  User name if behind basic auth
   -s  Password if behind basic auth
 
@@ -29,16 +30,18 @@ elasticsearchId=
 version=
 host=
 port=
+prefix=
 user=
 password=
 
-while getopts hi:v:o:p:u:s:? option; do
+while getopts hi:v:o:p:x:u:s:? option; do
   case "${option}" in
     h) usage; exit 1;;
     i) elasticsearchId=$(trim "$OPTARG");;
     v) version=$(trim "$OPTARG");;
     o) host=$(trim "$OPTARG");;
     p) port=$(trim "$OPTARG");;
+    x) prefix=$(trim "$OPTARG");;
     u) user=$(trim "$OPTARG");;
     s) password=$(trim "$OPTARG");;
     ?) usage; exit 1;;
@@ -60,6 +63,10 @@ fi
 
 if [[ -z "${port}" ]]; then
   port="9200"
+fi
+
+if [[ -z "${prefix}" ]]; then
+  port="magento"
 fi
 
 currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -99,6 +106,7 @@ fi
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchServerName}" elasticsearch "${elasticsearchId}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" version "${version}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" port "${port}"
+ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" prefix "${prefix}"
 if [[ -n "${user}" ]] && [[ -n "${password}" ]]; then
   ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" user "${user}"
   ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" password "${password}"
