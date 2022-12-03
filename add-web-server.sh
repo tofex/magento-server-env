@@ -48,6 +48,7 @@ fi
 
 webServerUser=$(whoami)
 webServerGroup=$(id -gn "${webServerUser}")
+webServerPath=$(realpath "${currentPath}/../../htdocs")
 
 echo ""
 echo "Please specify the web server server name, followed by [ENTER]:"
@@ -76,9 +77,6 @@ read -r -i "${webServerUser}" -e webServerUser
 echo ""
 echo "Please specify the web server group, followed by [ENTER]:"
 read -r -i "${webServerGroup}" -e webServerGroup
-
-webServerUserHome=$(bash -c "cd ~$(printf %q "${webServerUser}") && pwd")
-webServerPath="${webServerUserHome}/magento/htdocs"
 
 echo ""
 echo "Please specify the web server path, followed by [ENTER]:"

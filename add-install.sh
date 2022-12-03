@@ -56,7 +56,7 @@ echo "Please specify the Magento composer password, followed by [ENTER]:"
 read -r -e magentoComposerPassword
 
 echo ""
-echo "Please specify the Magento mode, followed by [ENTER]:"
+echo "Please specify the Magento admin path, followed by [ENTER]:"
 read -r -i "admin" -e adminPath
 
 echo ""
