@@ -66,7 +66,7 @@ if [[ -z "${port}" ]]; then
 fi
 
 if [[ -z "${prefix}" ]]; then
-  port="magento"
+  prefix="magento"
 fi
 
 currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
