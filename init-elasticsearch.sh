@@ -10,8 +10,9 @@ usage: ${scriptName} options
 OPTIONS:
   -h  Show this message
   -i  Elasticsearch id, default: elasticsearch
-  -o  Elasticsearch host, default: localhost
   -v  Elasticsearch version
+  -o  Elasticsearch host, default: localhost
+  -l  Elasticsearch SSL (true/false), default: false
   -p  Elasticsearch port, default: 9200
   -x  Elasticsearch prefix, default: magento
   -u  User name if behind basic auth
@@ -29,17 +30,19 @@ trim()
 elasticsearchId=
 version=
 host=
+ssl=
 port=
 prefix=
 user=
 password=
 
-while getopts hi:v:o:p:x:u:s:? option; do
+while getopts hi:v:o:l:p:x:u:s:? option; do
   case "${option}" in
     h) usage; exit 1;;
     i) elasticsearchId=$(trim "$OPTARG");;
     v) version=$(trim "$OPTARG");;
     o) host=$(trim "$OPTARG");;
+    l) ssl=$(trim "$OPTARG");;
     p) port=$(trim "$OPTARG");;
     x) prefix=$(trim "$OPTARG");;
     u) user=$(trim "$OPTARG");;
@@ -59,6 +62,10 @@ fi
 
 if [[ -z "${host}" ]]; then
   host="localhost"
+fi
+
+if [[ -z "${ssl}" ]]; then
+  ssl="false"
 fi
 
 if [[ -z "${port}" ]]; then
@@ -99,12 +106,55 @@ for server in "${serverList[@]}"; do
 done
 
 if [[ -z "${elasticsearchServerName}" ]]; then
+  echo ""
+  echo "No server found for Elasticsearch host!"
+
+  addServer=0
+  echo ""
+  echo "Do you wish to add a new server with the host name ${host}?"
+  select yesNo in "Yes" "No"; do
+    case "${yesNo}" in
+      Yes ) addServer=1; break;;
+      No ) break;;
+    esac
+  done
+
+  if [[ "${addServer}" == 1 ]]; then
+    echo ""
+    echo "Please specify the server name, followed by [ENTER]:"
+    read -r -i "elasticsearch_server" -e elasticsearchServerName
+
+    if [[ -z "${elasticsearchServerName}" ]]; then
+      echo "No elasticsearch name specified!"
+      exit 1
+    fi
+
+    sshUser=$(whoami)
+    echo ""
+    echo "Please specify the SSH user, followed by [ENTER]:"
+    read -r -i "${sshUser}" -e sshUser
+
+    if [[ -z "${sshUser}" ]]; then
+      echo "No SSH user specified!"
+      exit 1
+    fi
+
+    "${currentPath}/init-server.sh" \
+      -n "${elasticsearchServerName}" \
+      -t ssh \
+      -o "${host}" \
+      -s "${sshUser}"
+  fi
+fi
+
+if [[ -z "${elasticsearchServerName}" ]]; then
   echo "No server found for Elasticsearch host!"
   exit 1
 fi
 
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchServerName}" elasticsearch "${elasticsearchId}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" version "${version}"
+ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" ssl "${ssl}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" port "${port}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" prefix "${prefix}"
 if [[ -n "${user}" ]] && [[ -n "${password}" ]]; then

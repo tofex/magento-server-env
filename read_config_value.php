@@ -166,7 +166,13 @@ function getMagento2DatabaseConnection($rootPath)
  *
  * @return array
  */
-function getMagento2ConfigValue($rootPath, $magento2ConfigFile, $configValue, $defaultValue, $checkDatabase = true)
+function getMagento2ConfigValue(
+    $rootPath,
+    $magento2ConfigFile,
+    $configValue,
+    $defaultValue,
+    $checkDatabase = true,
+    $systemCheck = false)
 {
     $result = [];
 
@@ -182,7 +188,8 @@ function getMagento2ConfigValue($rootPath, $magento2ConfigFile, $configValue, $d
                 $databaseConfigValue = sprintf('%s/%%', $databaseConfigValue);
             }
 
-            $tablePrefix = getMagento2ConfigValue($rootPath, $magento2ConfigFile, 'db/table_prefix', '', false);
+            $tablePrefix =
+                getMagento2ConfigValue($rootPath, $magento2ConfigFile, 'db/table_prefix', '', false, $systemCheck);
 
             if (count($tablePrefix) > 0) {
                 $tablePrefix = reset($tablePrefix);
@@ -219,7 +226,9 @@ function getMagento2ConfigValue($rootPath, $magento2ConfigFile, $configValue, $d
         $result[] = $configData;
     }
 
-    return empty($result) ? [$defaultValue] : array_unique($result);
+    return empty($result) ? ($systemCheck ? [$defaultValue] :
+        getMagento2ConfigValue($rootPath, $magento2ConfigFile, sprintf('system/default/%s', ltrim($configValue, '/')),
+            $defaultValue, $checkDatabase, true)) : array_unique($result);
 }
 
 if ( ! isset($argv[ 1 ])) {
@@ -234,8 +243,8 @@ if ( ! isset($argv[ 2 ])) {
 
 $rootPath = rtrim($argv[ 1 ], '/');
 $configValue = $argv[ 2 ];
-$defaultValue = isset($argv[ 3 ]) ? $argv[ 3 ] : '';
-$checkDatabase = isset($argv[ 4 ]) ? $argv[ 4 ] : 'true';
+$defaultValue = $argv[ 3 ] ?? '';
+$checkDatabase = $argv[ 4 ] ?? 'true';
 
 $magento1ConfigFile = sprintf('%s/app/etc/local.xml', $rootPath);
 $magento2ConfigFile = sprintf('%s/app/etc/env.php', $rootPath);

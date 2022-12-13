@@ -50,7 +50,7 @@ for server in "${serverList[@]}"; do
 
       if [[ "${magentoVersion}" == 2 ]]; then
         echo -n "Extracting search engine: "
-        searchEngine=$(php read_config_value.php "${webPath}" catalog/search/engine)
+        searchEngine=$(php read_config_value.php "${webPath}" catalog/search/engine "elasticsearch7")
         echo "${searchEngine}"
 
         if [[ "${searchEngine}" == "elasticsearch" ]]; then
@@ -82,9 +82,44 @@ for server in "${serverList[@]}"; do
           elasticsearchHostName=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_server_hostname)
           echo "${elasticsearchHostName}"
 
+          echo -n "Extracting Elasticsearch SSL: "
+          if [[ "${elasticsearchHostName}" =~ ^https:// ]]; then
+            elasticsearchHostName=$(echo "${elasticsearchHostName}" | awk -F/ '{print $3}')
+            elasticsearchSsl="true"
+          elif [[ "${elasticsearchHostName}" =~ ^http:// ]]; then
+            elasticsearchHostName=$(echo "${elasticsearchHostName}" | awk -F/ '{print $3}')
+            elasticsearchSsl="false"
+          else
+            elasticsearchSsl="false"
+          fi
+          echo "${elasticsearchSsl}"
+
           echo -n "Extracting Elasticsearch port: "
           elasticsearchPort=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_server_port)
           echo "${elasticsearchPort}"
+
+          echo -n "Extracting Elasticsearch port: "
+          elasticsearchEnableAuth=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_enable_auth)
+          if [[ "${elasticsearchEnableAuth}" == 1 ]]; then
+            elasticsearchEnableAuth="true"
+          else
+            elasticsearchEnableAuth="false"
+          fi
+          echo "${elasticsearchEnableAuth}"
+
+          if [[ "${elasticsearchEnableAuth}" == "true" ]]; then
+            echo -n "Extracting Elasticsearch user: "
+            elasticsearchUser=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_username)
+            echo "${elasticsearchUser}"
+
+            echo -n "Extracting Elasticsearch password: "
+            elasticsearchPassword=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_password)
+            echo "${elasticsearchPassword}"
+          fi
+
+          echo -n "Extracting Elasticsearch prefix: "
+          elasticsearchPrefix=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_index_prefix magento2)
+          echo "${elasticsearchPrefix}"
         elif [[ "${searchEngine}" == "amasty_elastic" ]]; then
           echo -n "Extracting Elasticsearch host name: "
           elasticsearchHostName=$(php read_config_value.php "${webPath}" amasty_elastic/connection/server_hostname)
@@ -99,14 +134,42 @@ for server in "${serverList[@]}"; do
           if [[ -z "${elasticsearchPort}" ]]; then
             elasticsearchPort=9200
           fi
+
           echo -n "Extracting Elasticsearch version: "
-          elasticsearchVersion=$(curl -XGET -s "http://${elasticsearchHostName}:${elasticsearchPort}" | jq -r ".version.number // empty")
+          if [[ "${elasticsearchSsl}" == "true" ]]; then
+            elasticsearchInfoUrl="https://${elasticsearchHostName}:${elasticsearchPort}"
+          else
+            elasticsearchInfoUrl="http://${elasticsearchHostName}:${elasticsearchPort}"
+          fi
+          if [[ "${elasticsearchEnableAuth}" == "true" ]]; then
+            elasticsearchInfo=$(curl -XGET -u "${elasticsearchUser}:${elasticsearchPassword}" -s "${elasticsearchInfoUrl}")
+          else
+            elasticsearchInfo=$(curl -XGET -s "${elasticsearchInfoUrl}")
+          fi
+          if [[ $(which jq 2>/dev/null | wc -l) -gt 0 ]]; then
+            elasticsearchVersion=$(echo "${elasticsearchInfo}" | jq -r ".version.number // empty")
+          else
+            elasticsearchVersion=$(echo "${elasticsearchInfo}" | tr '\n' ' ' | sed 's/\s\+/ /g' | grep -oE '\"number\" : \"[0-9]*.[0-9]*.[0-9]*\"' | tr '\"' ' ' | awk '{print $3}')
+          fi
           echo "${elasticsearchVersion}"
 
-          ./init-elasticsearch.sh \
-            -o "${elasticsearchHostName}" \
-            -v "${elasticsearchVersion}" \
-            -p "${elasticsearchPort}"
+          if [[ "${elasticsearchEnableAuth}" == "true" ]]; then
+            ./init-elasticsearch.sh \
+              -o "${elasticsearchHostName}" \
+              -l "${elasticsearchSsl}" \
+              -v "${elasticsearchVersion}" \
+              -p "${elasticsearchPort}" \
+              -u "${elasticsearchUser}" \
+              -s "${elasticsearchPassword}" \
+              -x "${elasticsearchPrefix}"
+          else
+            ./init-elasticsearch.sh \
+              -o "${elasticsearchHostName}" \
+              -l "${elasticsearchSsl}" \
+              -v "${elasticsearchVersion}" \
+              -p "${elasticsearchPort}" \
+              -x "${elasticsearchPrefix}"
+          fi
         fi
       else
         ./server-elasticsearch.sh -n "${server}"

@@ -141,15 +141,15 @@ if [[ -z "${databaseServerName}" ]]; then
     echo "Please specify the server name, followed by [ENTER]:"
     read -r -i "database_server" -e databaseServerName
 
-    sshUser=$(whoami)
-    echo ""
-    echo "Please specify the SSH user, followed by [ENTER]:"
-    read -r -i "${sshUser}" -e sshUser
-
     if [[ -z "${databaseServerName}" ]]; then
       echo "No server name specified!"
       exit 1
     fi
+
+    sshUser=$(whoami)
+    echo ""
+    echo "Please specify the SSH user, followed by [ENTER]:"
+    read -r -i "${sshUser}" -e sshUser
 
     if [[ -z "${sshUser}" ]]; then
       echo "No SSH user specified!"
