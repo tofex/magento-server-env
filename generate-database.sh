@@ -89,14 +89,19 @@ for server in "${serverList[@]}"; do
       echo "${databaseName}"
 
       export MYSQL_PWD="${databasePassword}"
-      databaseVersion=$(mysql -h "${databaseHost}" -P "${databasePort}" -u "${databaseUser}" -sN -e  "SELECT VERSION();")
+      echo -n "Extracting database version: "
+      databaseVersion=$(mysql -h "${databaseHost}" -P "${databasePort}" -u "${databaseUser}" -sN -e "SELECT VERSION();")
+      echo "${databaseVersion}"
 
+      echo -n "Extracting database type: "
       if [[ $(echo "${databaseVersion}" | grep MariaDB | wc -l) == 1 ]]; then
         databaseType="mariadb"
       elif [[ $(mysql -V 2>/dev/null | grep -c "Distrib [0-9]*\.[0-9]*\.[0-9]*,") == 1 ]]; then
         databaseType="mysql"
       fi
-      databaseVersion=$(echo "${databaseVersion}" | grep -Po '^[0-9]+\.[0-9]+\.[0-9]+')
+      echo "${databaseType}"
+
+      databaseVersion=$(echo "${databaseVersion}" | grep -Eo '^[0-9]+\.[0-9]+\.[0-9]+')
       databaseVersion="${databaseVersion%.*}"
 
       ./init-database.sh \
