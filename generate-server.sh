@@ -79,7 +79,11 @@ webPath="${webPath%/}"
 
 if [[ "${serverType}" == "local" ]]; then
   currentUser=$(whoami)
-  currentGroup=$(id -gn "${currentUser}")
+  if [[ $(which id 2>/dev/null | wc -l) -gt 0 ]]; then
+    currentGroup=$(id -gn "${currentUser}")
+  else
+    currentGroup=$(grep -qe "^${currentUser}:" /etc/passwd && grep -e ":$(grep -e "^${currentUser}:" /etc/passwd | awk -F: '{print $4}'):" /etc/group | awk -F: '{print $1}' || echo "")
+  fi
   webUser=$(ls -ld "${webPath}"/ | awk '{print $3}')
   webGroup=$(ls -ld "${webPath}"/ | awk '{print $4}')
 #else

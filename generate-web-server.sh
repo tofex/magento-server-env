@@ -86,7 +86,11 @@ if [[ "${serverType}" == "local" ]]; then
   httpPort="-"
   sslPort="-"
   echo -n "Extracting web server type: "
-  isApache2=$(sudo -n netstat -tulpn 2>/dev/null | grep ":443 " | awk '{print $7}' | grep -oPc "/apache2$" | cat)
+  if [[ $(which netstat 2>/dev/null | wc -l) -gt 0 ]]; then
+    isApache2=$(sudo -n netstat -tulpn 2>/dev/null | grep ":443 " | awk '{print $7}' | grep -oPc "/apache2$" | cat)
+  else
+    isApache2=0
+  fi
   if [[ "${isApache2}" == 1 ]]; then
     echo "Apache2"
     type="apache"

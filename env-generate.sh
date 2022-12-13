@@ -19,7 +19,11 @@ rm -rf "${currentPath}/../env.properties"
 touch "${currentPath}/../env.properties"
 
 phpExecutable=$(which php)
-availablePhpExecutables=( $(locate bin/php | cat | grep -E php$ | cat) )
+if [[ $(which locate 2>/dev/null | wc -l) -gt 0 ]]; then
+  availablePhpExecutables=( $(locate bin/php | cat | grep -E php$ | cat) )
+else
+  availablePhpExecutables=( $(find / -path "*bin/php" 2>/dev/null | cat) )
+fi
 
 if [[ "${#availablePhpExecutables[@]}" -gt 1 ]]; then
   echo "Found multiple PHP executables:"
