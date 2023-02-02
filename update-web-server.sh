@@ -10,11 +10,12 @@ usage: ${scriptName} options
 OPTIONS:
   -h  Show this message
   -i  Web server id, default: web_server
-  -o  Web server host, default: localhost
+  -o  Web server host
   -t  Web server type
   -v  Web server version
-  -p  Web server HTTP port, default: 80
-  -s  Web server SSL port, default: 443
+  -p  Web server HTTP port
+  -s  Web server SSL port
+  -r  Flag if pub folder is root directory (yes/no)
 
 Example: ${scriptName} -t apache -v 2.4
 EOF
@@ -30,8 +31,9 @@ type=
 version=
 httpPort=
 sslPort=
+documentRootIsPub=
 
-while getopts hi:t:v:p:s:? option; do
+while getopts hi:t:v:p:s:r:? option; do
   case "${option}" in
     h) usage; exit 1;;
     i) webServerId=$(trim "$OPTARG");;
@@ -39,6 +41,7 @@ while getopts hi:t:v:p:s:? option; do
     v) version=$(trim "$OPTARG");;
     p) httpPort=$(trim "$OPTARG");;
     s) sslPort=$(trim "$OPTARG");;
+    r) documentRootIsPub=$(trim "$OPTARG");;
     ?) usage; exit 1;;
   esac
 done
@@ -80,6 +83,10 @@ for server in "${serverList[@]}"; do
     if [[ -n "${sslPort}" ]]; then
       echo "--- Updating web server SSL port on server: ${server} ---"
       ini-set "${currentPath}/../env.properties" yes "${webServerId}" sslPort "${sslPort}"
+    fi
+    if [[ -n "${documentRootIsPub}" ]]; then
+      echo "--- Updating document root is pub on server: ${server} ---"
+      ini-set "${currentPath}/../env.properties" yes "${webServerId}" documentRootIsPub "${documentRootIsPub}"
     fi
   fi
 done
