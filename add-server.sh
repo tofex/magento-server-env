@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,96 +9,92 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -t  Server type (local or ssh)
+  --help         Show this message
+  --name         Server name
+  --type         Server type (local/ssh), default: local
+  --host         Host if type != local
+  --sshUser      SSH User if type == ssh
+  --interactive  Interactive mode if data is missing
 
-Example: ${scriptName} -t local
+Example: ${scriptName} --name ws --type ssh --host 1.2.3.4 --sshUser user
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+name=
+type=
+host=
+sshUser=
+interactive=0
 
-serverName="server"
-serverType=
+source "${currentPath}/../core/prepare-parameters.sh"
 
-while getopts ht:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    t) serverType=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
-
-if [[ -z "${serverType}" ]]; then
-  echo ""
-  echo "Do you wish to add a local server?"
-  select yesNo in "Yes" "No"; do
-    case "${yesNo}" in
-      Yes ) serverType=local; break;;
-      No ) serverType=ssh; break;;
-    esac
-  done
+if [[ -z "${type}" ]] || [[ "${type}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the server type (local, remote, ssh), followed by [ENTER]:"
+    read -r -i "local" -e type
+  else
+    >&2 echo "No server type specified!"
+    echo ""
+    usage
+    exit 1
+  fi
 fi
 
-if [[ -z "${serverType}" ]]; then
-  echo "No server type specified!"
+if [[ -z "${name}" ]] || [[ "${name}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the server name, followed by [ENTER]:"
+    read -r -i "server" -e name
+  else
+    >&2 echo "No server name specified!"
+    echo ""
+    usage
+    exit 1
+  fi
 fi
 
-if [[ "${serverType}" != "local" ]] && [[ "${serverType}" != "ssh" ]]; then
-  echo "Invalid server type specified!"
+if [[ "${type}" == "local" ]]; then
+  "${currentPath}/init-server.sh" \
+    --name "${name}" \
+    --type "${type}"
+else
+  if [[ -z "${host}" ]] || [[ "${host}" == "-" ]]; then
+    if [[ "${interactive}" == 1 ]]; then
+      echo ""
+      echo "Please specify the host, followed by [ENTER]:"
+      read -r -e host
+    else
+      >&2 echo "No SSH specified!"
+      echo ""
+      usage
+      exit 1
+    fi
+  fi
+
+  if [[ "${type}" == "remote" ]]; then
+    "${currentPath}/init-server.sh" \
+      --name "${name}" \
+      --type "${type}" \
+      --host "${host}"
+  elif [[ "${type}" == "ssh" ]]; then
+    if [[ -z "${sshUser}" ]] || [[ "${sshUser}" == "-" ]]; then
+      if [[ "${interactive}" == 1 ]]; then
+        echo ""
+        echo "Please specify the SSH user, followed by [ENTER]:"
+        read -r -e sshUser
+      else
+        >&2 echo "No SSH user specified!"
+        echo ""
+        usage
+        exit 1
+      fi
+    fi
+
+    "${currentPath}/init-server.sh" \
+      --name "${name}" \
+      --type "${type}" \
+      --host "${host}" \
+      --sshUser "${sshUser}"
+  fi
 fi
-
-if [[ "${serverType}" == "local" ]]; then
-  host="localhost"
-  sshUser="-"
-elif [[ "${serverType}" == "ssh" ]]; then
-  echo ""
-  echo "Please specify the SSH host, followed by [ENTER]:"
-  read -r -e host
-
-  echo ""
-  echo "Please specify the SSH user, followed by [ENTER]:"
-  read -r -e sshUser
-fi
-
-echo ""
-echo "Please specify the web path of Magento, followed by [ENTER]:"
-read -r -e webPath
-
-webPath=$(echo "${webPath}" | sed 's:/*$::')
-webPath="${webPath%/}"
-
-if [[ "${serverType}" == "local" ]]; then
-  currentUser=$(whoami)
-  currentGroup=$(id -gn "${currentUser}")
-  webUser=$(ls -ld "${webPath}"/ | awk '{print $3}')
-  webGroup=$(ls -ld "${webPath}"/ | awk '{print $4}')
-#else
-  #@todo: SSH handling
-fi
-
-if [[ "${webUser}" != "${currentUser}" ]] || [[ "${webGroup}" != "${currentGroup}" ]]; then
-  echo "The magento root path is owned by user: ${webUser}:${webGroup}. Do you want to use this user as deployment user? Sudo rights would be required for current user: ${currentUser}:${currentGroup}."
-  select yesNo in "Yes" "No"; do
-    case "${yesNo}" in
-      Yes ) break;;
-      No ) webUser="${currentUser}"; webGroup="${currentGroup}" break;;
-    esac
-  done
-fi
-
-./init-server.sh \
-  -n "${serverName}" \
-  -t "${serverType}" \
-  -o "${host}" \
-  -s "${sshUser}" \
-  -p "${webPath}" \
-  -u "${webUser}" \
-  -g "${webGroup}"

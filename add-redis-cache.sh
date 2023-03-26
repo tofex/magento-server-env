@@ -51,6 +51,10 @@ read -r -i "local" -e redisCacheServerType
 
 if [[ "${redisCacheServerType}" == "local" ]]; then
   redisCacheServerHost="localhost"
+elif [[ "${redisCacheServerType}" == "remote" ]]; then
+  echo ""
+  echo "Please specify the redis cache server host, followed by [ENTER]:"
+  read -r -e redisCacheServerHost
 elif [[ "${redisCacheServerType}" == "ssh" ]]; then
   echo ""
   echo "Please specify the redis cache server host, followed by [ENTER]:"
@@ -91,14 +95,19 @@ fi
 
 if [[ "${redisCacheServerType}" == "local" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${redisCacheServerName}" \
-    -t "${redisCacheServerType}"
+    --name "${redisCacheServerName}" \
+    --type "${redisCacheServerType}"
+elif [[ "${redisCacheServerType}" == "remote" ]]; then
+  "${currentPath}/init-server.sh" \
+    --name "${redisCacheServerName}" \
+    --type "${redisCacheServerType}" \
+    --host "${redisCacheServerHost}"
 elif [[ "${redisCacheServerType}" == "ssh" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${redisCacheServerName}" \
-    -t "${redisCacheServerType}" \
-    -o "${redisCacheServerHost}" \
-    -s "${redisCacheServerUser}"
+    --name "${redisCacheServerName}" \
+    --type "${redisCacheServerType}" \
+    --host "${redisCacheServerHost}" \
+    --sshUser "${redisCacheServerUser}"
 fi
 
 "${currentPath}/init-redis-cache.sh" \

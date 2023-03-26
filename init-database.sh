@@ -146,21 +146,38 @@ if [[ -z "${databaseServerName}" ]]; then
       exit 1
     fi
 
-    sshUser=$(whoami)
+    databaseServerType=0
     echo ""
-    echo "Please specify the SSH user, followed by [ENTER]:"
-    read -r -i "${sshUser}" -e sshUser
+    echo "What type is the new server (ssh or remote)?"
+    select selection in "ssh" "remote"; do
+      case "${selection}" in
+        Yes ) databaseServerType="ssh"; break;;
+        No ) databaseServerType="remote"; break;;
+      esac
+    done
 
-    if [[ -z "${sshUser}" ]]; then
-      echo "No SSH user specified!"
-      exit 1
+    if [[ "${databaseServerType}" == "remote" ]]; then
+      "${currentPath}/init-server.sh" \
+        --name "${databaseServerName}" \
+        --type remote \
+        --host "${host}"
+    elif [[ "${databaseServerType}" == "ssh" ]]; then
+      sshUser=$(whoami)
+      echo ""
+      echo "Please specify the SSH user, followed by [ENTER]:"
+      read -r -i "${sshUser}" -e sshUser
+
+      if [[ -z "${sshUser}" ]]; then
+        echo "No SSH user specified!"
+        exit 1
+      fi
+
+      "${currentPath}/init-server.sh" \
+        --name "${databaseServerName}" \
+        --type ssh \
+        --host "${host}" \
+        --sshUser "${sshUser}"
     fi
-
-    "${currentPath}/init-server.sh" \
-      -n "${databaseServerName}" \
-      -t ssh \
-      -o "${host}" \
-      -s "${sshUser}"
   fi
 fi
 

@@ -96,8 +96,13 @@ for server in "${serverList[@]}"; do
       echo -n "Extracting database type: "
       if [[ $(echo "${databaseVersion}" | grep MariaDB | wc -l) == 1 ]]; then
         databaseType="mariadb"
-      elif [[ $(mysql -V 2>/dev/null | grep -c "Distrib [0-9]*\.[0-9]*\.[0-9]*,") == 1 ]]; then
-        databaseType="mysql"
+      else
+        clientDatabaseVersion=$(mysql -V 2>/dev/null)
+        if [[ $(echo "${clientDatabaseVersion}" | grep MariaDB | wc -l) == 1 ]]; then
+          databaseType="mariadb"
+        elif [[ $(echo "${clientDatabaseVersion}" | grep -c "Distrib [0-9]*\.[0-9]*\.[0-9]*,") == 1 ]]; then
+          databaseType="mysql"
+        fi
       fi
       echo "${databaseType}"
 

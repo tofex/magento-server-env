@@ -51,6 +51,10 @@ read -r -i "local" -e redisSessionServerType
 
 if [[ "${redisSessionServerType}" == "local" ]]; then
   redisSessionServerHost="localhost"
+elif [[ "${redisSessionServerType}" == "remote" ]]; then
+  echo ""
+  echo "Please specify the redis session server host, followed by [ENTER]:"
+  read -r -e redisSessionServerHost
 elif [[ "${redisSessionServerType}" == "ssh" ]]; then
   echo ""
   echo "Please specify the redis session server host, followed by [ENTER]:"
@@ -83,14 +87,19 @@ fi
 
 if [[ "${redisSessionServerType}" == "local" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${redisSessionServerName}" \
-    -t "${redisSessionServerType}"
+    --name "${redisSessionServerName}" \
+    --type "${redisSessionServerType}"
+elif [[ "${redisSessionServerType}" == "remote" ]]; then
+  "${currentPath}/init-server.sh" \
+    --name "${redisSessionServerName}" \
+    --type "${redisSessionServerType}" \
+    --host "${redisSessionServerHost}"
 elif [[ "${redisSessionServerType}" == "ssh" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${redisSessionServerName}" \
-    -t "${redisSessionServerType}" \
-    -o "${redisSessionServerHost}" \
-    -s "${redisSessionServerUser}"
+    --name "${redisSessionServerName}" \
+    --type "${redisSessionServerType}" \
+    --host "${redisSessionServerHost}" \
+    --sshUser "${redisSessionServerUser}"
 fi
 
 "${currentPath}/init-redis-session.sh" \

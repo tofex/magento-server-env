@@ -51,6 +51,39 @@ for server in "${serverList[@]}"; do
     webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webPath")
 
     if [[ "${serverType}" == "local" ]]; then
+      phpExecutable=$(which php)
+      if [[ $(which locate 2>/dev/null | wc -l) -gt 0 ]]; then
+        availablePhpExecutables=( $(locate bin/php | cat | grep -E php$ | cat) )
+      else
+        availablePhpExecutables=( $(find / -path "*bin/php" 2>/dev/null | cat) )
+      fi
+
+      if [[ "${#availablePhpExecutables[@]}" -gt 1 ]]; then
+        echo "Found multiple PHP executables:"
+        printf '%s\n' "${availablePhpExecutables[@]}"
+
+        usePhpExecutable=0
+        echo ""
+        echo "Do you wish to use the current PHP executable at: ${phpExecutable}?"
+        select yesNo in "Yes" "No"; do
+          case "${yesNo}" in
+            Yes ) usePhpExecutable=1; break;;
+            No ) break;;
+          esac
+        done
+
+        if [[ "${usePhpExecutable}" == 0 ]]; then
+          echo ""
+          echo "Please specify the PHP executable to use, followed by [ENTER]:"
+          read -r phpExecutable
+        fi
+      fi
+
+      if [[ -z "${phpExecutable}" ]]; then
+        echo "PHP executable not found"
+        exit 1
+      fi
+
       webUser=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webUser")
       webGroup=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webGroup")
 

@@ -55,6 +55,10 @@ elif [[ "${redisFullPageCacheServerType}" == "ssh" ]]; then
   echo ""
   echo "Please specify the redis full page cache server host, followed by [ENTER]:"
   read -r -e redisFullPageCacheServerHost
+elif [[ "${redisFullPageCacheServerType}" == "ssh" ]]; then
+  echo ""
+  echo "Please specify the redis full page cache server host, followed by [ENTER]:"
+  read -r -e redisFullPageCacheServerHost
 
   echo ""
   echo "Please specify the redis full page cache server user, followed by [ENTER]:"
@@ -91,14 +95,19 @@ fi
 
 if [[ "${redisFullPageCacheServerType}" == "local" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${redisFullPageCacheServerName}" \
-    -t "${redisFullPageCacheServerType}"
+    --name "${redisFullPageCacheServerName}" \
+    --type "${redisFullPageCacheServerType}"
+elif [[ "${redisFullPageCacheServerType}" == "remote" ]]; then
+  "${currentPath}/init-server.sh" \
+    --name "${redisFullPageCacheServerName}" \
+    --type "${redisFullPageCacheServerType}" \
+    --host "${redisFullPageCacheServerHost}"
 elif [[ "${redisFullPageCacheServerType}" == "ssh" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${redisFullPageCacheServerName}" \
-    -t "${redisFullPageCacheServerType}" \
-    -o "${redisFullPageCacheServerHost}" \
-    -s "${redisFullPageCacheServerUser}"
+    --name "${redisFullPageCacheServerName}" \
+    --type "${redisFullPageCacheServerType}" \
+    --host "${redisFullPageCacheServerHost}" \
+    --sshUser "${redisFullPageCacheServerUser}"
 fi
 
 "${currentPath}/init-redis-fpc.sh" \

@@ -9,116 +9,223 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
+  --help                 Show this message
+  --webServerServerType  Web server server type (local/ssh)
+  --webServerServerName  Web server server name
+  --webServerServerHost  Web server host (if webServerServerType == ssh)
+  --webServerServerUser  Web server user (if webServerServerType == ssh)
+  --webServerType        Type of web server
+  --webServerVersion     Version of web server
+  --webServerHttpPort    HTTP Port of web server
+  --webServerSslPort     SSL Port of web server
+  --webServerPath        Path of Magento installation
+  --webServerUser        User of Magento installation
+  --webServerGroup       Group of Magento installation
+  --interactive          Interactive mode if data is missing
 
 Example: ${scriptName}
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+webServerServerType=
+webServerServerName=
+webServerServerHost=
+webServerServerUser=
+webServerType=
+webServerVersion=
+webServerHttpPort=
+webServerSslPort=
+webServerPath=
+webServerUser=
+webServerGroup=
+interactive=0
 
-while getopts hs:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
 
-if [[ ! -f "${currentPath}/../env.properties" ]]; then
-  touch "${currentPath}/../env.properties"
-fi
-
-if [[ -f /opt/install/env.properties ]]; then
-  webServerApacheVersion=$(ini-parse "/opt/install/env.properties" "no" "apache" "version")
-  if [[ -n "${webServerApacheVersion}" ]]; then
-    webServerType="apache"
-    webServerVersion="${webServerApacheVersion}"
-    webServerHttpPort=$(ini-parse "/opt/install/env.properties" "no" "apache" "httpPort")
-    webServerSslPort=$(ini-parse "/opt/install/env.properties" "no" "apache" "sslPort")
+if [[ -z "${webServerServerType}" ]] || [[ "${webServerServerType}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the web server server type, followed by [ENTER]:"
+    read -r -i "local" -e webServerServerType
+  else
+    >&2 echo "No web server server type specified!"
+    echo ""
+    usage
+    exit 1
   fi
-else
-  webServerType="apache"
-  webServerVersion="2.4"
-  webServerHttpPort="80"
-  webServerSslPort="443"
 fi
 
-webServerUser=$(whoami)
-webServerGroup=$(id -gn "${webServerUser}")
-webServerPath=$(realpath "${currentPath}/../../htdocs")
+if [[ -z "${webServerServerName}" ]] || [[ "${webServerServerName}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the web server server name, followed by [ENTER]:"
+    read -r -i "server" -e webServerServerName
+  else
+    >&2 echo "No web server server name specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
 
-echo ""
-echo "Please specify the web server server name, followed by [ENTER]:"
-read -r -i "server" -e webServerServerName
+if [[ "${webServerServerType}" == "remote" ]] || [[ "${webServerServerType}" == "ssh" ]]; then
+  if [[ -z "${webServerServerHost}" ]] || [[ "${webServerServerHost}" == "-" ]]; then
+    if [[ "${interactive}" == 1 ]]; then
+      echo ""
+      echo "Please specify the web server host, followed by [ENTER]:"
+      read -r -e webServerServerHost
+    else
+      >&2 echo "No web server host specified!"
+      echo ""
+      usage
+      exit 1
+    fi
+  fi
+fi
 
-echo ""
-echo "Please specify the web server server user, followed by [ENTER]:"
-read -r -i "local" -e webServerServerType
+if [[ "${webServerServerType}" == "ssh" ]]; then
+  if [[ -z "${webServerServerUser}" ]] || [[ "${webServerServerUser}" == "-" ]]; then
+    if [[ "${interactive}" == 1 ]]; then
+      echo ""
+      echo "Please specify the web server SSH user, followed by [ENTER]:"
+      read -r -e webServerServerUser
+    else
+      >&2 echo "No web server SSH user specified!"
+      echo ""
+      usage
+      exit 1
+    fi
+  fi
+fi
+
+if [[ -z "${webServerType}" ]] || [[ "${webServerType}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the web server type, followed by [ENTER]:"
+    read -r -i "apache" -e webServerType
+  else
+    >&2 echo "No web server type specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
+
+if [[ -z "${webServerVersion}" ]] || [[ "${webServerVersion}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the web server version, followed by [ENTER]:"
+    read -r -i "2.4" -e webServerVersion
+  else
+    >&2 echo "No web server version specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
+
+if [[ -z "${webServerHttpPort}" ]] || [[ "${webServerHttpPort}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the web server HTTP port, followed by [ENTER]:"
+    read -r -i "80" -e webServerHttpPort
+  else
+    >&2 echo "No web server HTTP port specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
+
+if [[ -z "${webServerSslPort}" ]] || [[ "${webServerSslPort}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the web server SSL port, followed by [ENTER]:"
+    read -r -i "443" -e webServerSslPort
+  else
+    >&2 echo "No web server SSL port specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
+
+if [[ -z "${webServerPath}" ]] || [[ "${webServerPath}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the web server path, followed by [ENTER]:"
+    read -r -e webServerPath
+  else
+    >&2 echo "No web server path specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
+
+if [[ -z "${webServerUser}" ]] || [[ "${webServerUser}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the web server user, followed by [ENTER]:"
+    read -r -i "www-data" -e webServerUser
+  else
+    >&2 echo "No web server user specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
+
+if [[ -z "${webServerGroup}" ]] || [[ "${webServerGroup}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the web server group, followed by [ENTER]:"
+    read -r -i "www-data" -e webServerGroup
+  else
+    >&2 echo "No web server group specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
 
 if [[ "${webServerServerType}" == "local" ]]; then
-  webServerServerHost="localhost"
-elif [[ "${webServerServerType}" == "ssh" ]]; then
-  echo ""
-  echo "Please specify the web server server host, followed by [ENTER]:"
-  read -r -e webServerServerHost
+  if [[ ! -f "${webServerPath}/app/Mage.php" ]] && [[ ! -f "${webServerPath}/app/bootstrap.php" ]]; then
+    >&2 echo "Invalid Magento path specified!"
+    exit 1
+  fi
 
-  echo ""
-  echo "Please specify the web server server user, followed by [ENTER]:"
-  read -r -e webServerServerUser
+  if [[ ! -f "${webServerPath}/app/etc/local.xml" ]] && [[ ! -f "${webServerPath}/app/etc/env.php" ]]; then
+    >&2 echo "No Magento configuration found!"
+    exit 1
+  fi
+#elif [[ "${webServerServerType}" == "ssh" ]]; then
+  # @todo
 fi
-
-echo ""
-echo "Please specify the web server user, followed by [ENTER]:"
-read -r -i "${webServerUser}" -e webServerUser
-
-echo ""
-echo "Please specify the web server group, followed by [ENTER]:"
-read -r -i "${webServerGroup}" -e webServerGroup
-
-echo ""
-echo "Please specify the web server path, followed by [ENTER]:"
-read -r -i "${webServerPath}" -e webServerPath
-
-echo ""
-echo "Please specify the web server type, followed by [ENTER]:"
-read -r -i "${webServerType}" -e webServerType
-
-echo ""
-echo "Please specify the web server version, followed by [ENTER]:"
-read -r -i "${webServerVersion}" -e webServerVersion
-
-echo ""
-echo "Please specify the web server HTTP port, followed by [ENTER]:"
-read -r -i "${webServerHttpPort}" -e webServerHttpPort
-
-echo ""
-echo "Please specify the web server SSL port, followed by [ENTER]:"
-read -r -i "${webServerSslPort}" -e webServerSslPort
 
 if [[ "${webServerServerType}" == "local" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${webServerServerName}" \
-    -t "${webServerServerType}" \
-    -u "${webServerUser}" \
-    -g "${webServerGroup}" \
-    -p "${webServerPath}"
+    --name "${webServerServerName}" \
+    --type "${webServerServerType}"
+elif [[ "${webServerServerType}" == "remote" ]]; then
+  "${currentPath}/init-server.sh" \
+    --name "${webServerServerName}" \
+    --type "${webServerServerType}" \
+    --host "${webServerServerHost}"
 elif [[ "${webServerServerType}" == "ssh" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${webServerServerName}" \
-    -t "${webServerServerType}" \
-    -o "${webServerServerHost}" \
-    -s "${webServerServerUser}" \
-    -u "${webServerUser}" \
-    -g "${webServerGroup}" \
-    -p "${webServerPath}"
+    --name "${webServerServerName}" \
+    --type "${webServerServerType}" \
+    --host "${webServerServerHost}" \
+    --sshUser "${webServerServerUser}"
 fi
 
 "${currentPath}/init-web-server.sh" \
-  -t "${webServerType}" \
-  -v "${webServerVersion}" \
-  -o "${webServerServerHost}" \
-  -p "${webServerHttpPort}" \
-  -s "${webServerSslPort}"
+  --serverName "${webServerServerName}" \
+  --webServerType "${webServerType}" \
+  --webServerVersion "${webServerVersion}" \
+  --webServerHttpPort "${webServerHttpPort}" \
+  --webServerSslPort "${webServerSslPort}" \
+  --webServerPath "${webServerPath}" \
+  --webServerUser "${webServerUser}" \
+  --webServerGroup "${webServerGroup}"

@@ -53,6 +53,10 @@ read -r -i "local" -e databaseServerType
 
 if [[ "${databaseServerType}" == "local" ]]; then
   databaseServerHost="localhost"
+elif [[ "${databaseServerType}" == "remote" ]]; then
+  echo ""
+  echo "Please specify the database server host, followed by [ENTER]:"
+  read -r -e databaseServerHost
 elif [[ "${databaseServerType}" == "ssh" ]]; then
   echo ""
   echo "Please specify the database server host, followed by [ENTER]:"
@@ -101,14 +105,19 @@ fi
 
 if [[ "${databaseServerType}" == "local" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${databaseServerName}" \
-    -t "${databaseServerType}"
+    --name "${databaseServerName}" \
+    --type "${databaseServerType}"
+elif [[ "${databaseServerType}" == "remote" ]]; then
+  "${currentPath}/init-server.sh" \
+    --name "${databaseServerName}" \
+    --type "${databaseServerType}" \
+    --host "${databaseServerHost}"
 elif [[ "${databaseServerType}" == "ssh" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${databaseServerName}" \
-    -t "${databaseServerType}" \
-    -o "${databaseServerHost}" \
-    -s "${databaseServerUser}"
+    --name "${databaseServerName}" \
+    --type "${databaseServerType}" \
+    --host "${databaseServerHost}" \
+    --sshUser "${databaseServerUser}"
 fi
 
 "${currentPath}/init-database.sh" \

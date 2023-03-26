@@ -49,6 +49,10 @@ read -r -i "local" -e elasticsearchServerType
 
 if [[ "${elasticsearchServerType}" == "local" ]]; then
   elasticsearchServerHost="localhost"
+elif [[ "${elasticsearchServerType}" == "remote" ]]; then
+  echo ""
+  echo "Please specify the elasticsearch server host, followed by [ENTER]:"
+  read -r -e elasticsearchServerHost
 elif [[ "${elasticsearchServerType}" == "ssh" ]]; then
   echo ""
   echo "Please specify the elasticsearch server host, followed by [ENTER]:"
@@ -73,14 +77,19 @@ read -r -i "magento" -e elasticsearchPrefix
 
 if [[ "${elasticsearchServerType}" == "local" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${elasticsearchServerName}" \
-    -t "${elasticsearchServerType}"
+    --name "${elasticsearchServerName}" \
+    --type "${elasticsearchServerType}"
+elif [[ "${elasticsearchServerType}" == "remote" ]]; then
+  "${currentPath}/init-server.sh" \
+    --name "${elasticsearchServerName}" \
+    --type "${elasticsearchServerType}" \
+    --host "${elasticsearchServerHost}"
 elif [[ "${elasticsearchServerType}" == "ssh" ]]; then
   "${currentPath}/init-server.sh" \
-    -n "${elasticsearchServerName}" \
-    -t "${elasticsearchServerType}" \
-    -o "${elasticsearchServerHost}" \
-    -s "${elasticsearchServerUser}"
+    --name "${elasticsearchServerName}" \
+    --type "${elasticsearchServerType}" \
+    --host "${elasticsearchServerHost}" \
+    --sshUser "${elasticsearchServerUser}"
 fi
 
 "${currentPath}/init-elasticsearch.sh" \

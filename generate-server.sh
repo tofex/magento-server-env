@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -30,10 +31,6 @@ while getopts ht:? option; do
     ?) usage; exit 1;;
   esac
 done
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
 
 if [[ -z "${serverType}" ]]; then
   echo ""
@@ -100,11 +97,23 @@ if [[ "${webUser}" != "${currentUser}" ]] || [[ "${webGroup}" != "${currentGroup
   done
 fi
 
-./init-server.sh \
-  -n "${serverName}" \
-  -t "${serverType}" \
-  -o "${host}" \
-  -s "${sshUser}" \
-  -p "${webPath}" \
-  -u "${webUser}" \
-  -g "${webGroup}"
+if [[ "${serverType}" == "local" ]]; then
+  "${currentPath}/init-server.sh" \
+    --serverName "${serverName}" \
+    --type "${serverType}" \
+    --host "${host}" \
+    --webPath "${webPath}" \
+    --webUser "${webUser}" \
+    --webGroup "${webGroup}"
+fi
+
+if [[ "${serverType}" == "ssh" ]]; then
+  "${currentPath}/init-server.sh" \
+    --serverName "${serverName}" \
+    --type "${serverType}" \
+    --host "${host}" \
+    --sshUser "${sshUser}" \
+    --webPath "${webPath}" \
+    --webUser "${webUser}" \
+    --webGroup "${webGroup}"
+fi

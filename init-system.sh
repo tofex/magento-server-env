@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,45 +9,36 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -n  System name, default: system
-  -p  Project id (optional)
+  --help       Show this message
+  --name       Name of system
+  --projectId  Id of project
 
-Example: ${scriptName} -n magento
+Example: ${scriptName} --name live --projectId 12345
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
-
-systemName=
+name=
 projectId=
 
-while getopts hn:p:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    n) systemName=$(trim "$OPTARG");;
-    p) projectId=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
 
-if [[ -z "${systemName}" ]]; then
-  systemName="system"
+if [[ -z "${name}" ]]; then
+  >&2 echo "No name specified!"
+  echo ""
+  usage
+  exit 1
 fi
 
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
+if [[ -z "${projectId}" ]]; then
+  >&2 echo "No project Id specified!"
+  echo ""
+  usage
+  exit 1
+fi
 
 if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
 fi
 
-ini-set "${currentPath}/../env.properties" yes system name "${systemName}"
-
-if [[ -n "${projectId}" ]] && [[ "${projectId}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes system projectId "${projectId}"
-fi
+ini-set "${currentPath}/../env.properties" yes system name "${name}"
+ini-set "${currentPath}/../env.properties" yes system projectId "${projectId}"

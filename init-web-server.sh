@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,102 +9,110 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -i  Web server id, default: web_server
-  -o  Web server host, default: localhost
-  -t  Web server type
-  -v  Web server version
-  -p  Web server HTTP port, default: 80
-  -s  Web server SSL port, default: 443
+  --help               Show this message
+  --serverName         Name of server to use, default: server
+  --webServerId        Web server id, default: <serverName>_web_server
+  --webServerType      Web server type
+  --webServerVersion   Web server version
+  --webServerHttpPort  Web server HTTP port, default: 80
+  --webServerSslPort   Web server SSL port, default: 443
+  --webServerPath      Path of Magento installation
+  --webServerUser      User of Magento installation, default: www-data
+  --webServerGroup     Group of Magento installation, default: www-data
 
-Example: ${scriptName} -t apache -v 2.4
+Example: ${scriptName} --webServerType apache --webServerVersion 2.4 --webServerPath /var/www/magento/htdocs
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
-
+serverName=
 webServerId=
-host=
-type=
-version=
-httpPort=
-sslPort=
+webServerType=
+webServerVersion=
+webServerHttpPort=
+webServerSslPort=
+webServerPath=
+webServerUser=
+webServerGroup=
 
-while getopts hi:o:t:v:p:s:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    i) webServerId=$(trim "$OPTARG");;
-    o) host=$(trim "$OPTARG");;
-    t) type=$(trim "$OPTARG");;
-    v) version=$(trim "$OPTARG");;
-    p) httpPort=$(trim "$OPTARG");;
-    s) sslPort=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
+
+if [[ -z "${serverName}" ]]; then
+  serverName="server"
+fi
 
 if [[ -z "${webServerId}" ]]; then
-  webServerId="web_server"
+  webServerId="${serverName}_web_server"
 fi
 
-if [[ -z "${host}" ]]; then
-  host="localhost"
-fi
-
-if [[ -z "${type}" ]]; then
-  echo "No type specified!"
+if [[ -z "${webServerType}" ]]; then
+  >&2 echo "No web server type specified!"
+  echo ""
+  usage
   exit 1
 fi
 
-if [[ -z "${version}" ]]; then
-  echo "No version specified!"
+if [[ -z "${webServerVersion}" ]]; then
+  >&2 echo "No web server version specified!"
+  echo ""
+  usage
   exit 1
 fi
 
-if [[ -z "${httpPort}" ]]; then
-  httpPort="80"
+if [[ -z "${webServerHttpPort}" ]]; then
+  webServerHttpPort="80"
 fi
 
-if [[ -z "${sslPort}" ]]; then
-  sslPort="443"
+if [[ -z "${webServerSslPort}" ]]; then
+  webServerSslPort="443"
 fi
 
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+if [[ -z "${webServerPath}" ]]; then
+  >&2 echo "No web server path specified!"
+  echo ""
+  usage
+  exit 1
+fi
 
-cd "${currentPath}"
+if [[ -z "${webServerUser}" ]]; then
+  webServerUser="www-data"
+fi
+
+if [[ -z "${webServerGroup}" ]]; then
+  webServerGroup="www-data"
+fi
 
 if [[ ! -f "${currentPath}/../env.properties" ]]; then
-  touch "${currentPath}/../env.properties"
+  >&2 echo "No environment specified!"
+  exit 1
 fi
+
+serverFound=0
 
 serverList=( $(ini-parse "${currentPath}/../env.properties" "no" "system" "server") )
 if [[ "${#serverList[@]}" -eq 0 ]]; then
-  echo "No servers specified!"
+  >&2 echo "No servers specified!"
   exit 1
 fi
 
 for server in "${serverList[@]}"; do
-  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-  if [[ "${host}" == "localhost" ]] && [[ "${serverType}" == "local" ]]; then
-    serverName="${server}"
-  elif [[ "${serverType}" != "local" ]]; then
-    serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
-    if [[ "${serverHost}" == "${host}" ]]; then
-      serverName="${server}"
-    fi
+  if [[ "${server}" == "${serverName}" ]]; then
+    serverFound=1
   fi
 done
 
-if [[ -z "${serverName}" ]]; then
-  echo "No server found for web server host!"
+if [[ "${serverFound}" == 0 ]]; then
+  echo "No server with name: ${serverName} found for web server!"
   exit 1
 fi
 
+webServerPath=$(echo "${webServerPath}" | sed 's:/*$::')
+webServerPath="${webServerPath%/}"
+
 ini-set "${currentPath}/../env.properties" yes "${serverName}" webServer "${webServerId}"
-ini-set "${currentPath}/../env.properties" yes "${webServerId}" type "${type}"
-ini-set "${currentPath}/../env.properties" yes "${webServerId}" version "${version}"
-ini-set "${currentPath}/../env.properties" yes "${webServerId}" httpPort "${httpPort}"
-ini-set "${currentPath}/../env.properties" yes "${webServerId}" sslPort "${sslPort}"
+ini-set "${currentPath}/../env.properties" yes "${webServerId}" type "${webServerType}"
+ini-set "${currentPath}/../env.properties" yes "${webServerId}" version "${webServerVersion}"
+ini-set "${currentPath}/../env.properties" yes "${webServerId}" httpPort "${webServerHttpPort}"
+ini-set "${currentPath}/../env.properties" yes "${webServerId}" sslPort "${webServerSslPort}"
+ini-set "${currentPath}/../env.properties" yes "${webServerId}" path "${webServerPath}"
+ini-set "${currentPath}/../env.properties" yes "${webServerId}" user "${webServerUser}"
+ini-set "${currentPath}/../env.properties" yes "${webServerId}" group "${webServerGroup}"
