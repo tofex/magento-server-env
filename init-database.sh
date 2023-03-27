@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,86 +9,65 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -i  Database id, default: database
-  -o  Database host, default: localhost
-  -t  Database type
-  -v  Database version
-  -p  Database port, default: 3306
-  -u  Database user
-  -s  Database password
-  -d  Database name
-  -g  Upgrade on server, default: server
+  --help                Show this message
+  --databaseServerName  Name of server to use (optional)
+  --databaseId          Database id, default: <databaseServerName>_database
+  --dabaseHost          Database host, default: localhost
+  --databaseType        Database type
+  --databaseVersion     Database version
+  --databasePort        Database port, default: 3306
+  --databaseUser        Database user
+  --databasePassword    Database password
+  --databaseName        Database name
+  --upgradeServer       Upgrade on server, default: server name
 
-Example: ${scriptName} -t mysql -v 5.7 -p 3306 -u magento -p magento -d magento
+Example: ${scriptName} --databaseType mysql --databaseVersion 5.7 --databaseUser magento --databasePassword magento --databaseName magento
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
-
+serverName=
 databaseId=
-host=
-type=
-version=
-port=
-user=
-password=
-name=
+databaseHost=
+databaseType=
+databaseVersion=
+databasePort=
+databaseUser=
+databasePassword=
+databaseName=
 upgradeServer=
 
-while getopts hi:o:t:v:p:u:s:d:g:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    i) databaseId=$(trim "$OPTARG");;
-    o) host=$(trim "$OPTARG");;
-    t) type=$(trim "$OPTARG");;
-    v) version=$(trim "$OPTARG");;
-    p) port=$(trim "$OPTARG");;
-    u) user=$(trim "$OPTARG");;
-    s) password=$(trim "$OPTARG");;
-    d) name=$(trim "$OPTARG");;
-    g) upgradeServer=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
 
-if [[ -z "${databaseId}" ]]; then
-  databaseId="database"
+if [[ -z "${databaseHost}" ]]; then
+  databaseHost="localhost"
 fi
 
-if [[ -z "${host}" ]]; then
-  host="localhost"
-fi
-
-if [[ -z "${type}" ]]; then
-  echo "No type specified!"
+if [[ -z "${databaseType}" ]]; then
+  >&2 echo "No databaseType specified!"
   exit 1
 fi
 
-if [[ -z "${version}" ]]; then
-  echo "No version specified!"
+if [[ -z "${databaseVersion}" ]]; then
+  >&2 echo "No databaseVersion specified!"
   exit 1
 fi
 
-if [[ -z "${port}" ]]; then
-  port="3306"
+if [[ -z "${databasePort}" ]]; then
+  databasePort="3306"
 fi
 
-if [[ -z "${user}" ]]; then
-  echo "No user specified!"
+if [[ -z "${databaseUser}" ]]; then
+  >&2 echo "No user specified!"
   exit 1
 fi
 
-if [[ -z "${password}" ]]; then
-  echo "No password specified!"
+if [[ -z "${databasePassword}" ]]; then
+  >&2 echo "No password specified!"
   exit 1
 fi
 
-if [[ -z "${name}" ]]; then
-  echo "No name specified!"
+if [[ -z "${databaseName}" ]]; then
+  >&2 echo "No name specified!"
   exit 1
 fi
 
@@ -105,30 +85,34 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-databaseServerName=
-upgradeServerName=
-for server in "${serverList[@]}"; do
-  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-  if { [[ "${host}" == "localhost" ]] || [[ "${host}" == "127.0.0.1" ]]; } && [[ "${serverType}" == "local" ]]; then
-    databaseServerName="${server}"
-  elif [[ "${serverType}" != "local" ]]; then
-    serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
-    if [[ "${serverHost}" == "${host}" ]]; then
+if [[ -z "${serverName}" ]]; then
+  databaseServerName=
+  upgradeServerName=
+  for server in "${serverList[@]}"; do
+    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "databaseType")
+    if { [[ "${databaseHost}" == "localhost" ]] || [[ "${databaseHost}" == "127.0.0.1" ]]; } && [[ "${serverType}" == "local" ]]; then
       databaseServerName="${server}"
+    elif [[ "${serverType}" != "local" ]]; then
+      serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
+      if [[ "${serverHost}" == "${databaseHost}" ]]; then
+        databaseServerName="${server}"
+      fi
     fi
-  fi
-  if [[ "${upgradeServer}" == "${server}" ]]; then
-    upgradeServerName="${server}"
-  fi
-done
+    if [[ "${upgradeServer}" == "${server}" ]]; then
+      upgradeServerName="${server}"
+    fi
+  done
+else
+  databaseServerName="${serverName}"
+fi
 
 if [[ -z "${databaseServerName}" ]]; then
   echo ""
-  echo "No server found for database host!"
+  echo "No server found for database dabaseHost!"
 
   addServer=0
   echo ""
-  echo "Do you wish to add a new server with the host name ${host}?"
+  echo "Do you wish to add a new server with the host name ${databaseHost}?"
   select yesNo in "Yes" "No"; do
     case "${yesNo}" in
       Yes ) addServer=1; break;;
@@ -148,7 +132,7 @@ if [[ -z "${databaseServerName}" ]]; then
 
     databaseServerType=0
     echo ""
-    echo "What type is the new server (ssh or remote)?"
+    echo "What databaseType is the new server (ssh or remote)?"
     select selection in "ssh" "remote"; do
       case "${selection}" in
         Yes ) databaseServerType="ssh"; break;;
@@ -159,8 +143,8 @@ if [[ -z "${databaseServerName}" ]]; then
     if [[ "${databaseServerType}" == "remote" ]]; then
       "${currentPath}/init-server.sh" \
         --name "${databaseServerName}" \
-        --type remote \
-        --host "${host}"
+        --databaseType remote \
+        --dabaseHost "${databaseHost}"
     elif [[ "${databaseServerType}" == "ssh" ]]; then
       sshUser=$(whoami)
       echo ""
@@ -174,16 +158,20 @@ if [[ -z "${databaseServerName}" ]]; then
 
       "${currentPath}/init-server.sh" \
         --name "${databaseServerName}" \
-        --type ssh \
-        --host "${host}" \
+        --databaseType ssh \
+        --dabaseHost "${databaseHost}" \
         --sshUser "${sshUser}"
     fi
   fi
 fi
 
 if [[ -z "${databaseServerName}" ]]; then
-  echo "No server found for database host!"
+  >&2 echo "No server found for database host!"
   exit 1
+fi
+
+if [[ -z "${databaseId}" ]]; then
+  databaseId="${serverName}_database"
 fi
 
 if [[ -z "${upgradeServer}" ]]; then
@@ -195,10 +183,10 @@ if [[ -z "${upgradeServerName}" ]]; then
 fi
 
 ini-set "${currentPath}/../env.properties" yes "${databaseServerName}" database "${databaseId}"
-ini-set "${currentPath}/../env.properties" yes "${databaseId}" type "${type}"
-ini-set "${currentPath}/../env.properties" yes "${databaseId}" version "${version}"
-ini-set "${currentPath}/../env.properties" yes "${databaseId}" port "${port}"
-ini-set "${currentPath}/../env.properties" yes "${databaseId}" user "${user}"
-ini-set "${currentPath}/../env.properties" yes "${databaseId}" password "${password}"
-ini-set "${currentPath}/../env.properties" yes "${databaseId}" name "${name}"
-ini-set "${currentPath}/../env.properties" yes "${upgradeServerName}" upgrade yes
+ini-set "${currentPath}/../env.properties" yes "${databaseId}" type "${databaseType}"
+ini-set "${currentPath}/../env.properties" yes "${databaseId}" version "${databaseVersion}"
+ini-set "${currentPath}/../env.properties" yes "${databaseId}" port "${databasePort}"
+ini-set "${currentPath}/../env.properties" yes "${databaseId}" user "${databaseUser}"
+ini-set "${currentPath}/../env.properties" yes "${databaseId}" password "${databasePassword}"
+ini-set "${currentPath}/../env.properties" yes "${databaseId}" name "${databaseName}"
+ini-set "${currentPath}/../env.properties" yes "${databaseServerName}" upgrade yes

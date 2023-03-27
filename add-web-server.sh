@@ -45,7 +45,7 @@ source "${currentPath}/../core/prepare-parameters.sh"
 if [[ -z "${webServerServerType}" ]] || [[ "${webServerServerType}" == "-" ]]; then
   if [[ "${interactive}" == 1 ]]; then
     echo ""
-    echo "Please specify the web server server type, followed by [ENTER]:"
+    echo "Please specify the web server server type (local, remote, ssh), followed by [ENTER]:"
     read -r -i "local" -e webServerServerType
   else
     >&2 echo "No web server server type specified!"
