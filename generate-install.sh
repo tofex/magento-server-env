@@ -85,8 +85,8 @@ for server in "${serverList[@]}"; do
         exit 1
       fi
 
-      webUser=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webUser")
-      webGroup=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webGroup")
+      webUser=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "user")
+      webGroup=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "group")
 
       if [[ -f "${webPath}/app/etc/local.xml" ]]; then
         magentoVersion=1

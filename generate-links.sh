@@ -31,7 +31,6 @@ for server in "${serverList[@]}"; do
     webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${webServer}" "path")
 
     if [[ "${serverType}" == "local" ]]; then
-      echo "--- Checking current symlinks on local server: ${server} ---"
       cd "${webPath}"
       symlinkList=( $(find . -type l -not -path "./vendor/*" -not -path "./update/vendor/*" | sort -n | sed 's/^.\///') )
 
