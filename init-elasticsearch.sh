@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,77 +9,53 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -i  Elasticsearch id, default: elasticsearch
-  -v  Elasticsearch version
-  -o  Elasticsearch host, default: localhost
-  -l  Elasticsearch SSL (true/false), default: false
-  -p  Elasticsearch port, default: 9200
-  -x  Elasticsearch prefix, default: magento
-  -u  User name if behind basic auth
-  -s  Password if behind basic auth
+  --help                     Show this message
+  --elasticsearchServerName  Name of server to use (optional)
+  --elasticsearchId          Elasticsearch id, default: elasticsearch
+  --elasticsearchVersion     Elasticsearch version
+  --elasticsearchHost        Elasticsearch host, default: localhost
+  --elasticsearchSsl         Elasticsearch SSL (true/false), default: false
+  --elasticsearchPort        Elasticsearch port, default: 9200
+  --elasticsearchPrefix      Elasticsearch prefix, default: magento
+  --elasticsearchUser        User name if behind basic auth
+  --elasticsearchPassword    Password if behind basic auth
 
-Example: ${scriptName} -v 7.9 -p 9200
+Example: ${scriptName} --elasticsearchVersion 7.9 --elasticsearchPort 9200
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
-
+elasticsearchServerName=
 elasticsearchId=
-version=
-host=
-ssl=
-port=
-prefix=
-user=
-password=
+elasticsearchVersion=
+elasticsearchHost=
+elasticsearchSsl=
+elasticsearchPort=
+elasticsearchPrefix=
+elasticsearchUser=
+elasticsearchPassword=
 
-while getopts hi:v:o:l:p:x:u:s:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    i) elasticsearchId=$(trim "$OPTARG");;
-    v) version=$(trim "$OPTARG");;
-    o) host=$(trim "$OPTARG");;
-    l) ssl=$(trim "$OPTARG");;
-    p) port=$(trim "$OPTARG");;
-    x) prefix=$(trim "$OPTARG");;
-    u) user=$(trim "$OPTARG");;
-    s) password=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
 
-if [[ -z "${elasticsearchId}" ]]; then
-  elasticsearchId="elasticsearch"
-fi
-
-if [[ -z "${version}" ]]; then
-  echo "No version specified!"
+if [[ -z "${elasticsearchVersion}" ]]; then
+  >&2 echo "No Elasticsearch version specified!"
   exit 1
 fi
 
-if [[ -z "${host}" ]]; then
-  host="localhost"
+if [[ -z "${elasticsearchHost}" ]]; then
+  elasticsearchHost="localhost"
 fi
 
-if [[ -z "${ssl}" ]]; then
-  ssl="false"
+if [[ -z "${elasticsearchSsl}" ]]; then
+  elasticsearchSsl="false"
 fi
 
-if [[ -z "${port}" ]]; then
-  port="9200"
+if [[ -z "${elasticsearchPort}" ]]; then
+  elasticsearchPort="9200"
 fi
 
-if [[ -z "${prefix}" ]]; then
-  prefix="magento"
+if [[ -z "${elasticsearchPrefix}" ]]; then
+  elasticsearchPrefix="magento"
 fi
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
 
 if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
@@ -90,20 +67,21 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-elasticsearchServerName=
-for server in "${serverList[@]}"; do
-  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-  if [[ "${host}" == "localhost" ]] || [[ "${host}" == "127.0.0.1" ]]; then
-    if [[ "${serverType}" == "local" ]]; then
+if [[ -z "${elasticsearchServerName}" ]]; then
+  elasticsearchServerName=
+  for server in "${serverList[@]}"; do
+    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
+
+    if { [[ "${elasticsearchHost}" == "localhost" ]] || [[ "${elasticsearchHost}" == "127.0.0.1" ]]; } && [[ "${serverType}" == "local" ]]; then
       elasticsearchServerName="${server}"
+    elif [[ "${serverType}" != "local" ]]; then
+      serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
+      if [[ "${serverHost}" == "${elasticsearchHost}" ]]; then
+        elasticsearchServerName="${server}"
+      fi
     fi
-  elif [[ "${serverType}" != "local" ]]; then
-    serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
-    if [[ "${serverHost}" == "${host}" ]]; then
-      elasticsearchServerName="${server}"
-    fi
-  fi
-done
+  done
+fi
 
 if [[ -z "${elasticsearchServerName}" ]]; then
   echo ""
@@ -111,7 +89,7 @@ if [[ -z "${elasticsearchServerName}" ]]; then
 
   addServer=0
   echo ""
-  echo "Do you wish to add a new server with the host name ${host}?"
+  echo "Do you wish to add a new server with the host name ${elasticsearchHost}?"
   select yesNo in "Yes" "No"; do
     case "${yesNo}" in
       Yes ) addServer=1; break;;
@@ -140,10 +118,10 @@ if [[ -z "${elasticsearchServerName}" ]]; then
     fi
 
     "${currentPath}/init-server.sh" \
-      -n "${elasticsearchServerName}" \
-      -t ssh \
-      -o "${host}" \
-      -s "${sshUser}"
+      --name "${elasticsearchServerName}" \
+      --type ssh \
+      --host "${elasticsearchHost}" \
+      --sshUser "${sshUser}"
   fi
 fi
 
@@ -152,12 +130,16 @@ if [[ -z "${elasticsearchServerName}" ]]; then
   exit 1
 fi
 
+if [[ -z "${elasticsearchId}" ]]; then
+  elasticsearchId="${elasticsearchServerName}_elasticsearch"
+fi
+
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchServerName}" elasticsearch "${elasticsearchId}"
-ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" version "${version}"
-ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" ssl "${ssl}"
-ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" port "${port}"
-ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" prefix "${prefix}"
-if [[ -n "${user}" ]] && [[ -n "${password}" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" user "${user}"
-  ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" password "${password}"
+ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" version "${elasticsearchVersion}"
+ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" ssl "${elasticsearchSsl}"
+ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" port "${elasticsearchPort}"
+ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" prefix "${elasticsearchPrefix}"
+if [[ -n "${elasticsearchUser}" ]] && [[ -n "${elasticsearchPassword}" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" user "${elasticsearchUser}"
+  ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" password "${elasticsearchPassword}"
 fi

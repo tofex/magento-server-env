@@ -10,10 +10,10 @@ usage: ${scriptName} options
 
 OPTIONS:
   --help                Show this message
-  --databaseServerType  Type of server (local, remote, ssh)
   --databaseServerName  Name of server to use (optional)
+  --databaseServerType  Type of server (local, remote, ssh)
   --databaseServerUser  User if server type is SSH
-  --dabaseHost          Database host, default: localhost
+  --databaseHost        Database host, default: localhost
   --databaseType        Database type
   --databaseVersion     Database version
   --databasePort        Database port, default: 3306
@@ -25,8 +25,8 @@ Example: ${scriptName}
 EOF
 }
 
-databaseServerType=
 databaseServerName=
+databaseServerType=
 databaseServerUser=
 databaseHost=
 databaseType=
@@ -38,6 +38,10 @@ databaseName=
 interactive=0
 
 source "${currentPath}/../core/prepare-parameters.sh"
+
+if [[ ! -f "${currentPath}/../env.properties" ]]; then
+  touch "${currentPath}/../env.properties"
+fi
 
 if [[ -f /opt/install/env.properties ]]; then
   databaseType=$(ini-parse "/opt/install/env.properties" "no" "mysql" "type")
@@ -58,26 +62,47 @@ if [[ -f "${currentPath}/../env.properties" ]]; then
   systemName=$(ini-parse "${currentPath}/../env.properties" "no" "system" "name")
 fi
 
-if [[ -z "${databaseServerType}" ]] || [[ "${databaseServerType}" == "-" ]]; then
-  if [[ "${interactive}" == 1 ]]; then
-    echo ""
-    echo "Please specify the database server type (local, remote, ssh), followed by [ENTER]:"
-    read -r -i "local" -e databaseServerType
-  else
-    >&2 echo "No database server type specified!"
-    echo ""
-    usage
-    exit 1
-  fi
+serverList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "server") )
+if [[ "${#serverList[@]}" -eq 0 ]]; then
+  echo "No servers specified!"
+  exit 1
+fi
+
+if { [[ -z "${databaseServerName}" ]] || [[ "${databaseServerName}" == "-" ]]; } && [[ -n "${databaseHost}" ]]; then
+  for server in "${serverList[@]}"; do
+    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
+
+    if { [[ "${databaseHost}" == "localhost" ]] || [[ "${databaseHost}" == "127.0.0.1" ]]; } && [[ "${serverType}" == "local" ]]; then
+      databaseServerName="${server}"
+    elif [[ "${serverType}" != "local" ]]; then
+      serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
+      if [[ "${serverHost}" == "${databaseHost}" ]]; then
+        databaseServerName="${server}"
+      fi
+    fi
+  done
 fi
 
 if [[ -z "${databaseServerName}" ]] || [[ "${databaseServerName}" == "-" ]]; then
   if [[ "${interactive}" == 1 ]]; then
     echo ""
     echo "Please specify the database server name, followed by [ENTER]:"
-    read -r -i "server" -e databaseServerName
+    read -r -i "${databaseHost}" -e databaseServerName
   else
-    >&2 echo "No database server server name specified!"
+    >&2 echo "No database server name specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
+
+if [[ -z "${databaseServerType}" ]] || [[ "${databaseServerType}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the database server type (local, remote, ssh), followed by [ENTER]:"
+    read -r -i "remote" -e databaseServerType
+  else
+    >&2 echo "No database server type specified!"
     echo ""
     usage
     exit 1

@@ -25,7 +25,7 @@ Example: ${scriptName} --databaseType mysql --databaseVersion 5.7 --databaseUser
 EOF
 }
 
-serverName=
+databaseServerName=
 databaseId=
 databaseHost=
 databaseType=
@@ -43,12 +43,12 @@ if [[ -z "${databaseHost}" ]]; then
 fi
 
 if [[ -z "${databaseType}" ]]; then
-  >&2 echo "No databaseType specified!"
+  >&2 echo "No database type specified!"
   exit 1
 fi
 
 if [[ -z "${databaseVersion}" ]]; then
-  >&2 echo "No databaseVersion specified!"
+  >&2 echo "No database version specified!"
   exit 1
 fi
 
@@ -57,23 +57,21 @@ if [[ -z "${databasePort}" ]]; then
 fi
 
 if [[ -z "${databaseUser}" ]]; then
-  >&2 echo "No user specified!"
+  >&2 echo "No database user specified!"
   exit 1
 fi
 
 if [[ -z "${databasePassword}" ]]; then
-  >&2 echo "No password specified!"
+  >&2 echo "No database password specified!"
   exit 1
 fi
 
 if [[ -z "${databaseName}" ]]; then
-  >&2 echo "No name specified!"
+  >&2 echo "No database name specified!"
   exit 1
 fi
 
 currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
 
 if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
@@ -85,11 +83,11 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-if [[ -z "${serverName}" ]]; then
+if [[ -z "${databaseServerName}" ]]; then
   databaseServerName=
   upgradeServerName=
   for server in "${serverList[@]}"; do
-    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "databaseType")
+    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
     if { [[ "${databaseHost}" == "localhost" ]] || [[ "${databaseHost}" == "127.0.0.1" ]]; } && [[ "${serverType}" == "local" ]]; then
       databaseServerName="${server}"
     elif [[ "${serverType}" != "local" ]]; then
@@ -102,8 +100,6 @@ if [[ -z "${serverName}" ]]; then
       upgradeServerName="${server}"
     fi
   done
-else
-  databaseServerName="${serverName}"
 fi
 
 if [[ -z "${databaseServerName}" ]]; then
@@ -132,7 +128,7 @@ if [[ -z "${databaseServerName}" ]]; then
 
     databaseServerType=0
     echo ""
-    echo "What databaseType is the new server (ssh or remote)?"
+    echo "What type is the server (ssh or remote)?"
     select selection in "ssh" "remote"; do
       case "${selection}" in
         Yes ) databaseServerType="ssh"; break;;
@@ -171,7 +167,7 @@ if [[ -z "${databaseServerName}" ]]; then
 fi
 
 if [[ -z "${databaseId}" ]]; then
-  databaseId="${serverName}_database"
+  databaseId="${databaseServerName}_database"
 fi
 
 if [[ -z "${upgradeServer}" ]]; then

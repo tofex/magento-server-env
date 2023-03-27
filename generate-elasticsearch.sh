@@ -37,10 +37,12 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
 fi
 
 for server in "${serverList[@]}"; do
+  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
   webServer=$(ini-parse "${currentPath}/../env.properties" "no" "${server}" "webServer")
+
   if [[ -n "${webServer}" ]]; then
-    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webPath")
+    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "path")
+
     if [[ "${serverType}" == "local" ]]; then
       if [[ -f "${webPath}/app/etc/local.xml" ]]; then
         magentoVersion=1
@@ -155,7 +157,7 @@ for server in "${serverList[@]}"; do
 
           if [[ "${elasticsearchEnableAuth}" == "true" ]]; then
             ./init-elasticsearch.sh \
-              -o "${elasticsearchHostName}" \
+              --elasticsearchHost "${elasticsearchHostName}" \
               -l "${elasticsearchSsl}" \
               -v "${elasticsearchVersion}" \
               -p "${elasticsearchPort}" \
@@ -164,7 +166,7 @@ for server in "${serverList[@]}"; do
               -x "${elasticsearchPrefix}"
           else
             ./init-elasticsearch.sh \
-              -o "${elasticsearchHostName}" \
+              --elasticsearchHost "${elasticsearchHostName}" \
               -l "${elasticsearchSsl}" \
               -v "${elasticsearchVersion}" \
               -p "${elasticsearchPort}" \
