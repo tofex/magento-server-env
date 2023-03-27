@@ -45,10 +45,11 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
 fi
 
 for server in "${serverList[@]}"; do
+  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
   webServer=$(ini-parse "${currentPath}/../env.properties" "no" "${server}" "webServer")
+
   if [[ -n "${webServer}" ]]; then
-    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webPath")
+    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${webServer}" "path")
 
     if [[ "${serverType}" == "local" ]]; then
       phpExecutable=$(which php)
@@ -140,10 +141,10 @@ for server in "${serverList[@]}"; do
       echo "${cryptKey}"
 
       ./init-install.sh \
-        -v "${magentoSpecificVersion}" \
-        -e "${magentoEdition}" \
-        -m "${magentoMode}" \
-        -c "${cryptKey}"
+        --magentoVersion "${magentoSpecificVersion}" \
+        --magentoEdition "${magentoEdition}" \
+        --magentoMode "${magentoMode}" \
+        --cryptKey "${cryptKey}"
     fi
   fi
 done

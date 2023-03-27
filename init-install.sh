@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,23 +9,18 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -v  Magento version
-  -e  Magento edition, default: community
-  -m  Magento mode, default: developer
-  -c  Crypt key, default: 59d6bece52542f48fd629b78e7921b39
-  -u  Magento composer user, default: d661c529da2e737d5b514bf1ff2a2576
-  -p  Magento composer password, default: b969ec145c55b8a8248ca8541160fe89
-  -a  Admin path (optional)
-  -i  Mail address for all system mails
+  --help              Show this message
+  --magentoVersion    Magento version
+  --magentoEdition    Magento edition, default: community
+  --magentoMode       Magento mode, default: developer
+  --cryptKey          Crypt key, default: 59d6bece52542f48fd629b78e7921b39
+  --composerUser      Magento composer user, default: d661c529da2e737d5b514bf1ff2a2576
+  --composerPassword  Magento composer password, default: b969ec145c55b8a8248ca8541160fe89
+  --adminPath         Admin path (optional)
+  --mailAddress       Mail address for all system mails
 
-Example: ${scriptName} -v 2.3.7 -e community -m production
+Example: ${scriptName} --magentoVersion 2.3.7 --magentoEdition community --magentoMode production
 EOF
-}
-
-trim()
-{
-  echo -n "$1" | xargs
 }
 
 versionCompare() {
@@ -46,20 +42,7 @@ composerPassword=
 adminPath=
 mailAddress=
 
-while getopts hv:e:m:c:u:p:a:i:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    v) magentoVersion=$(trim "$OPTARG");;
-    e) magentoEdition=$(trim "$OPTARG");;
-    m) magentoMode=$(trim "$OPTARG");;
-    c) cryptKey=$(trim "$OPTARG");;
-    u) composerUser=$(trim "$OPTARG");;
-    p) composerPassword=$(trim "$OPTARG");;
-    a) adminPath=$(trim "$OPTARG");;
-    i) mailAddress=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
 
 if [[ -z "${magentoVersion}" ]]; then
   echo "No Magento version specified!"

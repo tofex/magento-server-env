@@ -47,6 +47,17 @@ if [[ "${webServerType}" == "-" ]]; then
   if [[ $(which netstat 2>/dev/null | wc -l) -gt 0 ]]; then
     isApache2=$(sudo -n netstat -tulpn 2>/dev/null | grep ":443 " | awk '{print $7}' | uniq | grep -oPc "/apache2$" | cat)
     isNginx=$(sudo -n netstat -tulpn 2>/dev/null | grep ":443 " | awk '{print $7}' | uniq | grep -oPc "/nginx" | cat)
+  elif [[ $(which ps 2>/dev/null | wc -l) -gt 0 ]]; then
+    if [[ $(ps -acx | grep apache | wc -l) -gt 0 ]]; then
+      isApache2=1
+    else
+      isApache2=0
+    fi
+    if [[ $(ps -acx | grep nginx | wc -l) -gt 0 ]]; then
+      isNginx=1
+    else
+      isNginx=0
+    fi
   else
     isApache2=0
     isNginx=0
@@ -67,7 +78,11 @@ if [[ "${webServerType}" == "-" ]]; then
       webServerVersion=$("${webServerScript}" -v | grep "Server version:" | awk '{print $3}' | sed 's/^Apache\///')
       echo "${webServerVersion}"
       echo -n "Extracting web server ports: "
-      ports=( $(sudo -n netstat -anp 2>/dev/null | grep apache | grep LISTEN | awk '{print $4}' | grep -oP "[0-9]+$") )
+      if [[ $(which netstat 2>/dev/null | wc -l) -gt 0 ]]; then
+        ports=( $(sudo -n netstat -anp 2>/dev/null | grep apache | grep LISTEN | awk '{print $4}' | grep -oP "[0-9]+$") )
+      else
+        ports=()
+      fi
       echo "${ports[@]}"
       for port in "${ports[@]}"; do
         echo -n "Checking SSL on port: ${port}: "
@@ -99,7 +114,13 @@ if [[ "${webServerType}" == "-" ]]; then
       webServerVersion=$("${webServerScript}" -v 2>&1 | awk '{print $3}' | sed 's/^nginx.*\///')
       echo "${webServerVersion}"
       echo -n "Extracting web server ports: "
-      ports=( $(sudo -n netstat -anp 2>/dev/null | grep nginx | grep LISTEN | awk '{print $4}' | grep -oP "[0-9]+$" | sort -u) )
+      if [[ $(which netstat 2>/dev/null | wc -l) -gt 0 ]]; then
+        ports=( $(sudo -n netstat -anp 2>/dev/null | grep nginx | grep LISTEN | awk '{print $4}' | grep -oP "[0-9]+$" | sort -u) )
+      elif [[ -d /etc/nginx ]]; then
+        ports=( $(grep -r "listen " /etc/nginx/ | cut -d' ' -f2- | sed 's/^\s*//g' | sed 's/\s\+/ /g' | sed 's/;$//g' | awk '{print $2}' | sort -u) )
+      else
+        ports=()
+      fi
       echo "${ports[@]}"
       for port in "${ports[@]}"; do
         echo -n "Checking SSL on port: ${port}: "

@@ -44,8 +44,8 @@ if [[ "${interactive}" == 1 ]]; then
     --projectId "${projectId}" \
     --interactive
   "${currentPath}/generate-web-server.sh" --interactive
-  "${currentPath}/generate-links.sh" --interactive
-  "${currentPath}/generate-install.sh" --interactive
+  "${currentPath}/generate-links.sh"
+  "${currentPath}/generate-install.sh"
   "${currentPath}/generate-database.sh" --interactive
   "${currentPath}/generate-elasticsearch.sh" --interactive
   "${currentPath}/generate-solr.sh" --interactive
