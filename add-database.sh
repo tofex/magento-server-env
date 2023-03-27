@@ -12,6 +12,14 @@ OPTIONS:
   --help                Show this message
   --databaseServerType  Type of server (local, remote, ssh)
   --databaseServerName  Name of server to use (optional)
+  --databaseServerUser  User if server type is SSH
+  --dabaseHost          Database host, default: localhost
+  --databaseType        Database type
+  --databaseVersion     Database version
+  --databasePort        Database port, default: 3306
+  --databaseUser        Database user
+  --databasePassword    Database password
+  --databaseName        Database name
 
 Example: ${scriptName}
 EOF

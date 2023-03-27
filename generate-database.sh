@@ -31,7 +31,8 @@ for server in "${serverList[@]}"; do
   webServer=$(ini-parse "${currentPath}/../env.properties" "no" "${server}" "webServer")
 
   if [[ -n "${webServer}" ]]; then
-    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webPath")
+    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${webServer}" "path")
+
     if [[ "${serverType}" == "local" ]]; then
       if [[ -f "${webPath}/app/etc/local.xml" ]]; then
         magentoVersion=1
@@ -41,41 +42,41 @@ for server in "${serverList[@]}"; do
 
       echo -n "Extracting database host: "
       if [[ "${magentoVersion}" == 1 ]]; then
-        databaseHost=$(php read_config_value.php "${webPath}" global/resources/default_setup/connection/host localhost)
+        databaseHost=$(php "${currentPath}/read_config_value.php" "${webPath}" global/resources/default_setup/connection/host localhost)
       else
-        databaseHost=$(php read_config_value.php "${webPath}" db/connection/default/host localhost)
+        databaseHost=$(php "${currentPath}/read_config_value.php" "${webPath}" db/connection/default/host localhost)
       fi
       echo "${databaseHost}"
 
       echo -n "Extracting database port: "
       if [[ "${magentoVersion}" == 1 ]]; then
-        databasePort=$(php read_config_value.php "${webPath}" global/resources/default_setup/connection/port 3306)
+        databasePort=$(php "${currentPath}/read_config_value.php" "${webPath}" global/resources/default_setup/connection/port 3306)
       else
-        databasePort=$(php read_config_value.php "${webPath}" db/connection/default/port 3306)
+        databasePort=$(php "${currentPath}/read_config_value.php" "${webPath}" db/connection/default/port 3306)
       fi
       echo "${databasePort}"
 
       echo -n "Extracting database user: "
       if [[ "${magentoVersion}" == 1 ]]; then
-        databaseUser=$(php read_config_value.php "${webPath}" global/resources/default_setup/connection/username)
+        databaseUser=$(php "${currentPath}/read_config_value.php" "${webPath}" global/resources/default_setup/connection/username)
       else
-        databaseUser=$(php read_config_value.php "${webPath}" db/connection/default/username)
+        databaseUser=$(php "${currentPath}/read_config_value.php" "${webPath}" db/connection/default/username)
       fi
       echo "${databaseUser}"
 
       echo -n "Extracting database password: "
       if [[ "${magentoVersion}" == 1 ]]; then
-        databasePassword=$(php read_config_value.php "${webPath}" global/resources/default_setup/connection/password)
+        databasePassword=$(php "${currentPath}/read_config_value.php" "${webPath}" global/resources/default_setup/connection/password)
       else
-        databasePassword=$(php read_config_value.php "${webPath}" db/connection/default/password)
+        databasePassword=$(php "${currentPath}/read_config_value.php" "${webPath}" db/connection/default/password)
       fi
       echo "${databasePassword}"
 
       echo -n "Extracting database name: "
       if [[ "${magentoVersion}" == 1 ]]; then
-        databaseName=$(php read_config_value.php "${webPath}" global/resources/default_setup/connection/dbname)
+        databaseName=$(php "${currentPath}/read_config_value.php" "${webPath}" global/resources/default_setup/connection/dbname)
       else
-        databaseName=$(php read_config_value.php "${webPath}" db/connection/default/dbname)
+        databaseName=$(php "${currentPath}/read_config_value.php" "${webPath}" db/connection/default/dbname)
       fi
       echo "${databaseName}"
 
@@ -101,7 +102,7 @@ for server in "${serverList[@]}"; do
       databaseVersion="${databaseVersion%.*}"
 
       if [[ "${interactive}" == 1 ]]; then
-        ./add-database.sh \
+        "${currentPath}/add-database.sh" \
           --databaseHost "${databaseHost}" \
           --databaseType "${databaseType}" \
           --databaseVersion "${databaseVersion}" \
@@ -111,7 +112,7 @@ for server in "${serverList[@]}"; do
           --databaseName "${databaseName}" \
           --interactive
       else
-        ./add-database.sh \
+        "${currentPath}/add-database.sh" \
           --databaseHost "${databaseHost}" \
           --databaseType "${databaseType}" \
           --databaseVersion "${databaseVersion}" \

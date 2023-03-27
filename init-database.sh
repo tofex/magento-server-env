@@ -12,7 +12,7 @@ OPTIONS:
   --help                Show this message
   --databaseServerName  Name of server to use (optional)
   --databaseId          Database id, default: <databaseServerName>_database
-  --dabaseHost          Database host, default: localhost
+  --databaseHost        Database host, default: localhost
   --databaseType        Database type
   --databaseVersion     Database version
   --databasePort        Database port, default: 3306
@@ -108,7 +108,7 @@ fi
 
 if [[ -z "${databaseServerName}" ]]; then
   echo ""
-  echo "No server found for database dabaseHost!"
+  echo "No server found for database databaseHost!"
 
   addServer=0
   echo ""
@@ -144,7 +144,7 @@ if [[ -z "${databaseServerName}" ]]; then
       "${currentPath}/init-server.sh" \
         --name "${databaseServerName}" \
         --databaseType remote \
-        --dabaseHost "${databaseHost}"
+        --databaseHost "${databaseHost}"
     elif [[ "${databaseServerType}" == "ssh" ]]; then
       sshUser=$(whoami)
       echo ""
@@ -159,7 +159,7 @@ if [[ -z "${databaseServerName}" ]]; then
       "${currentPath}/init-server.sh" \
         --name "${databaseServerName}" \
         --databaseType ssh \
-        --dabaseHost "${databaseHost}" \
+        --databaseHost "${databaseHost}" \
         --sshUser "${sshUser}"
     fi
   fi
