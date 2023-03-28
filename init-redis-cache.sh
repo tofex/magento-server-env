@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,68 +9,48 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -i  Redis id, default: redis_cache
-  -o  Redis host, default: localhost
-  -v  Redis version
-  -p  Redis port, default: 6379
-  -d  Database number, default: 0
-  -s  Redis password (optional)
-  -r  Cache prefix (optional)
-  -c  Name of PHP class (optional)
+  --help                  Show this message
+  --redisCacheServerName  Name of server to use (optional)
+  --redisCacheId          Redis id, default: redis_cache
+  --redisCacheHost        Redis host, default: localhost
+  --redisCacheVersion     Redis version
+  --redisCachePort        Redis port, default: 6379
+  --redisCachePassword    Redis password (optional)
+  --redisCacheDatabase    Database number, default: 0
+  --redisCachePrefix      Cache prefix (optional)
+  --redisCacheClassName   Name of PHP class (optional)
 
-Example: ${scriptName} -v 6.0 -p 6379 -d 0
+Example: ${scriptName} --redisCacheVersion 6.0 --redisCachePort 6379 --redisCacheDatabase 0
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+redisCacheServerName=
+redisCacheId=
+redisCacheHost=
+redisCacheVersion=
+redisCachePort=
+redisCachePassword=
+redisCacheDatabase=
+redisCachePrefix=
+redisCacheClassName=
 
-redisId=
-host=
-version=
-port=
-password=
-database=
-cachePrefix=
-className=
+source "${currentPath}/../core/prepare-parameters.sh"
 
-while getopts hi:o:v:p:s:d:r:c:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    i) redisId=$(trim "$OPTARG");;
-    o) host=$(trim "$OPTARG");;
-    v) version=$(trim "$OPTARG");;
-    p) port=$(trim "$OPTARG");;
-    s) password=$(trim "$OPTARG");;
-    d) database=$(trim "$OPTARG");;
-    r) cachePrefix=$(trim "$OPTARG");;
-    c) className=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
-
-if [[ -z "${redisId}" ]]; then
-  redisId="redis_cache"
+if [[ -z "${redisCacheHost}" ]]; then
+  redisCacheHost="localhost"
 fi
 
-if [[ -z "${host}" ]]; then
-  host="localhost"
-fi
-
-if [[ -z "${version}" ]]; then
+if [[ -z "${redisCacheVersion}" ]]; then
   echo "No version specified!"
   exit 1
 fi
 
-if [[ -z "${port}" ]]; then
-  port="6379"
+if [[ -z "${redisCachePort}" ]]; then
+  redisCachePort="6379"
 fi
 
-if [[ -z "${database}" ]]; then
-  database="0"
+if [[ -z "${redisCacheDatabase}" ]]; then
+  redisCacheDatabase="0"
 fi
 
 currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -86,36 +67,41 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-redisServerName=
-for server in "${serverList[@]}"; do
-  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-  if [[ "${host}" == "localhost" ]] || [[ "${host}" == "127.0.0.1" ]]; then
-    if [[ "${serverType}" == "local" ]]; then
-      redisServerName="${server}"
+if [[ -z "${redisCacheServerName}" ]]; then
+  for server in "${serverList[@]}"; do
+    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
+    if [[ "${redisCacheHost}" == "localhost" ]] || [[ "${redisCacheHost}" == "127.0.0.1" ]]; then
+      if [[ "${serverType}" == "local" ]]; then
+        redisCacheServerName="${server}"
+      fi
+    elif [[ "${serverType}" != "local" ]]; then
+      serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
+      if [[ "${serverHost}" == "${redisCacheHost}" ]]; then
+        redisCacheServerName="${server}"
+      fi
     fi
-  elif [[ "${serverType}" != "local" ]]; then
-    serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
-    if [[ "${serverHost}" == "${host}" ]]; then
-      redisServerName="${server}"
-    fi
-  fi
-done
+  done
+fi
 
-if [[ -z "${redisServerName}" ]]; then
-  echo "No server found for Redis host!"
+if [[ -z "${redisCacheServerName}" ]]; then
+  echo "No server found for Redis cache host!"
   exit 1
 fi
 
-ini-set "${currentPath}/../env.properties" yes "${redisServerName}" redisCache "${redisId}"
-ini-set "${currentPath}/../env.properties" yes "${redisId}" version "${version}"
-ini-set "${currentPath}/../env.properties" yes "${redisId}" port "${port}"
-if [[ -n "${password}" ]] && [[ "${password}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${redisId}" password "${password}"
+if [[ -z "${redisCacheId}" ]]; then
+  redisCacheId="${redisCacheServerName}_redis_cache"
 fi
-ini-set "${currentPath}/../env.properties" yes "${redisId}" database "${database}"
-if [[ -n "${cachePrefix}" ]] && [[ "${cachePrefix}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${redisId}" prefix "${cachePrefix}"
+
+ini-set "${currentPath}/../env.properties" yes "${redisCacheServerName}" redisCache "${redisCacheId}"
+ini-set "${currentPath}/../env.properties" yes "${redisCacheId}" version "${redisCacheVersion}"
+ini-set "${currentPath}/../env.properties" yes "${redisCacheId}" port "${redisCachePort}"
+if [[ -n "${redisCachePassword}" ]] && [[ "${redisCachePassword}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${redisCacheId}" password "${redisCachePassword}"
 fi
-if [[ -n "${className}" ]] && [[ "${className}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${redisId}" className "${className}"
+ini-set "${currentPath}/../env.properties" yes "${redisCacheId}" database "${redisCacheDatabase}"
+if [[ -n "${redisCachePrefix}" ]] && [[ "${redisCachePrefix}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${redisCacheId}" prefix "${redisCachePrefix}"
+fi
+if [[ -n "${redisCacheClassName}" ]] && [[ "${redisCacheClassName}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${redisCacheId}" className "${redisCacheClassName}"
 fi

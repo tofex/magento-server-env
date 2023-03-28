@@ -68,10 +68,8 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
 fi
 
 if [[ -z "${elasticsearchServerName}" ]]; then
-  elasticsearchServerName=
   for server in "${serverList[@]}"; do
     serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-
     if { [[ "${elasticsearchHost}" == "localhost" ]] || [[ "${elasticsearchHost}" == "127.0.0.1" ]]; } && [[ "${serverType}" == "local" ]]; then
       elasticsearchServerName="${server}"
     elif [[ "${serverType}" != "local" ]]; then
@@ -81,48 +79,6 @@ if [[ -z "${elasticsearchServerName}" ]]; then
       fi
     fi
   done
-fi
-
-if [[ -z "${elasticsearchServerName}" ]]; then
-  echo ""
-  echo "No server found for Elasticsearch host!"
-
-  addServer=0
-  echo ""
-  echo "Do you wish to add a new server with the host name ${elasticsearchHost}?"
-  select yesNo in "Yes" "No"; do
-    case "${yesNo}" in
-      Yes ) addServer=1; break;;
-      No ) break;;
-    esac
-  done
-
-  if [[ "${addServer}" == 1 ]]; then
-    echo ""
-    echo "Please specify the server name, followed by [ENTER]:"
-    read -r -i "elasticsearch_server" -e elasticsearchServerName
-
-    if [[ -z "${elasticsearchServerName}" ]]; then
-      echo "No elasticsearch name specified!"
-      exit 1
-    fi
-
-    sshUser=$(whoami)
-    echo ""
-    echo "Please specify the SSH user, followed by [ENTER]:"
-    read -r -i "${sshUser}" -e sshUser
-
-    if [[ -z "${sshUser}" ]]; then
-      echo "No SSH user specified!"
-      exit 1
-    fi
-
-    "${currentPath}/init-server.sh" \
-      --name "${elasticsearchServerName}" \
-      --type ssh \
-      --host "${elasticsearchHost}" \
-      --sshUser "${sshUser}"
-  fi
 fi
 
 if [[ -z "${elasticsearchServerName}" ]]; then

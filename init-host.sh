@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,28 +9,23 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -n  System name, default: system
-  -i  Host id
-  -v  Virtual host name
-  -s  Scope (default, website or store)
-  -c  Code
-  -t  SSL terminated (yes or no), default: no
-  -f  Force SSL (yes or no), default: yes
-  -e  SSL certification file (optional)
-  -k  SSL key file (optional)
-  -r  Require IP list (optional)
-  -a  Allow Urls (optional)
-  -b  Basic Auth User Name (optional)
-  -w  Basic Auth Password (optional)
+  --help               Show this message
+  --systemName         System name, default: system
+  --hostId             Host id
+  --virtualHost        Virtual host name
+  --scope              Scope (default, website or store)
+  --code               Code
+  --sslTerminated      SSL terminated (yes or no), default: no
+  --forceSsl           Force SSL (yes or no), default: yes
+  --sslCertFile        SSL certification file (optional)
+  --sslKeyFile         SSL key file (optional)
+  --requireIp          Require IP list (optional)
+  --allowUrl           Allow Urls (optional)
+  --basicAuthUserName  Basic Auth User Name (optional)
+  --basicAuthPassword  Basic Auth Password (optional)
 
 Example: ${scriptName} -i dev_magento2_de -v dev.magento2.de -s website -c base -t no -f yes
 EOF
-}
-
-trim()
-{
-  echo -n "$1" | xargs
 }
 
 systemName=
@@ -46,25 +42,7 @@ allowUrl=
 basicAuthUserName=
 basicAuthPassword=
 
-while getopts hn:i:v:s:c:t:f:e:k:r:a:b:w:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    n) systemName=$(trim "$OPTARG");;
-    i) hostId=$(trim "$OPTARG");;
-    v) virtualHost=$(trim "$OPTARG");;
-    s) scope=$(trim "$OPTARG");;
-    c) code=$(trim "$OPTARG");;
-    t) sslTerminated=$(trim "$OPTARG");;
-    f) forceSsl=$(trim "$OPTARG");;
-    e) sslCertFile=$(trim "$OPTARG");;
-    k) sslKeyFile=$(trim "$OPTARG");;
-    r) requireIp=$(trim "$OPTARG");;
-    a) allowUrl=$(trim "$OPTARG");;
-    b) basicAuthUserName=$(trim "$OPTARG");;
-    w) basicAuthPassword=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
 
 if [[ -z "${systemName}" ]]; then
   systemName="system"

@@ -19,7 +19,7 @@ OPTIONS:
   --databaseUser        Database user
   --databasePassword    Database password
   --databaseName        Database name
-  --upgradeServer       Upgrade on server, default: server name
+  --upgradeServerName   Upgrade on server, default: server name
 
 Example: ${scriptName} --databaseType mysql --databaseVersion 5.7 --databaseUser magento --databasePassword magento --databaseName magento
 EOF
@@ -34,7 +34,7 @@ databasePort=
 databaseUser=
 databasePassword=
 databaseName=
-upgradeServer=
+upgradeServerName=
 
 source "${currentPath}/../core/prepare-parameters.sh"
 
@@ -84,8 +84,6 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
 fi
 
 if [[ -z "${databaseServerName}" ]]; then
-  databaseServerName=
-  upgradeServerName=
   for server in "${serverList[@]}"; do
     serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
     if { [[ "${databaseHost}" == "localhost" ]] || [[ "${databaseHost}" == "127.0.0.1" ]]; } && [[ "${serverType}" == "local" ]]; then
@@ -96,69 +94,7 @@ if [[ -z "${databaseServerName}" ]]; then
         databaseServerName="${server}"
       fi
     fi
-    if [[ "${upgradeServer}" == "${server}" ]]; then
-      upgradeServerName="${server}"
-    fi
   done
-fi
-
-if [[ -z "${databaseServerName}" ]]; then
-  echo ""
-  echo "No server found for database databaseHost!"
-
-  addServer=0
-  echo ""
-  echo "Do you wish to add a new server with the host name ${databaseHost}?"
-  select yesNo in "Yes" "No"; do
-    case "${yesNo}" in
-      Yes ) addServer=1; break;;
-      No ) break;;
-    esac
-  done
-
-  if [[ "${addServer}" == 1 ]]; then
-    echo ""
-    echo "Please specify the server name, followed by [ENTER]:"
-    read -r -i "database_server" -e databaseServerName
-
-    if [[ -z "${databaseServerName}" ]]; then
-      echo "No server name specified!"
-      exit 1
-    fi
-
-    databaseServerType=0
-    echo ""
-    echo "What type is the server (ssh or remote)?"
-    select selection in "ssh" "remote"; do
-      case "${selection}" in
-        Yes ) databaseServerType="ssh"; break;;
-        No ) databaseServerType="remote"; break;;
-      esac
-    done
-
-    if [[ "${databaseServerType}" == "remote" ]]; then
-      "${currentPath}/init-server.sh" \
-        --name "${databaseServerName}" \
-        --databaseType remote \
-        --databaseHost "${databaseHost}"
-    elif [[ "${databaseServerType}" == "ssh" ]]; then
-      sshUser=$(whoami)
-      echo ""
-      echo "Please specify the SSH user, followed by [ENTER]:"
-      read -r -i "${sshUser}" -e sshUser
-
-      if [[ -z "${sshUser}" ]]; then
-        echo "No SSH user specified!"
-        exit 1
-      fi
-
-      "${currentPath}/init-server.sh" \
-        --name "${databaseServerName}" \
-        --databaseType ssh \
-        --databaseHost "${databaseHost}" \
-        --sshUser "${sshUser}"
-    fi
-  fi
 fi
 
 if [[ -z "${databaseServerName}" ]]; then
@@ -185,4 +121,4 @@ ini-set "${currentPath}/../env.properties" yes "${databaseId}" port "${databaseP
 ini-set "${currentPath}/../env.properties" yes "${databaseId}" user "${databaseUser}"
 ini-set "${currentPath}/../env.properties" yes "${databaseId}" password "${databasePassword}"
 ini-set "${currentPath}/../env.properties" yes "${databaseId}" name "${databaseName}"
-ini-set "${currentPath}/../env.properties" yes "${databaseServerName}" upgrade yes
+ini-set "${currentPath}/../env.properties" yes "${upgradeServerName}" upgrade yes

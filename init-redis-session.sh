@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,67 +9,42 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -i  Redis id, default: redis_session
-  -o  Redis host, default: localhost
-  -v  Redis version
-  -p  Redis port, default: 6381
-  -d  Database number, default: 0
-  -s  Redis password (optional)
+  --help                    Show this message
+  --redisSessionServerName  Name of server to use (optional)
+  --redisSessionId          Redis id, default: redis_session
+  --redisSessionHost        Redis host, default: localhost
+  --redisSessionVersion     Redis version
+  --redisSessionPort        Redis port, default: 6381
+  --redisSessionPassword    Redis password (optional)
+  --redisSessionDatabase    Database number, default: 0
 
 Example: ${scriptName} -v 6.0 -p 6381 -d 0
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+redisSessionId=
+redisSessionHost=
+redisSessionVersion=
+redisSessionPort=
+redisSessionPassword=
+redisSessionDatabase=
 
-redisId=
-host=
-version=
-port=
-password=
-database=
-
-while getopts hi:o:v:p:s:d:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    i) redisId=$(trim "$OPTARG");;
-    o) host=$(trim "$OPTARG");;
-    v) version=$(trim "$OPTARG");;
-    p) port=$(trim "$OPTARG");;
-    s) password=$(trim "$OPTARG");;
-    d) database=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
-
-if [[ -z "${redisId}" ]]; then
-  redisId="redis_session"
+if [[ -z "${redisSessionHost}" ]]; then
+  redisSessionHost="localhost"
 fi
 
-if [[ -z "${host}" ]]; then
-  host="localhost"
-fi
-
-if [[ -z "${version}" ]]; then
+if [[ -z "${redisSessionVersion}" ]]; then
   echo "No version specified!"
   exit 1
 fi
 
-if [[ -z "${port}" ]]; then
-  port="6381"
+if [[ -z "${redisSessionPort}" ]]; then
+  redisSessionPort="6381"
 fi
 
-if [[ -z "${database}" ]]; then
-  database="0"
+if [[ -z "${redisSessionDatabase}" ]]; then
+  redisSessionDatabase="0"
 fi
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
 
 if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
@@ -80,30 +56,35 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-redisServerName=
-for server in "${serverList[@]}"; do
-  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-  if [[ "${host}" == "localhost" ]] || [[ "${host}" == "127.0.0.1" ]]; then
-    if [[ "${serverType}" == "local" ]]; then
-      redisServerName="${server}"
+if [[ -z "${redisSessionServerName}" ]]; then
+  for server in "${serverList[@]}"; do
+    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
+    if [[ "${redisSessionHost}" == "localhost" ]] || [[ "${redisSessionHost}" == "127.0.0.1" ]]; then
+      if [[ "${serverType}" == "local" ]]; then
+        redisSessionServerName="${server}"
+      fi
+    elif [[ "${serverType}" != "local" ]]; then
+      serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
+      if [[ "${serverHost}" == "${redisSessionHost}" ]]; then
+        redisSessionServerName="${server}"
+      fi
     fi
-  elif [[ "${serverType}" != "local" ]]; then
-    serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
-    if [[ "${serverHost}" == "${host}" ]]; then
-      redisServerName="${server}"
-    fi
-  fi
-done
+  done
+fi
 
-if [[ -z "${redisServerName}" ]]; then
+if [[ -z "${redisSessionServerName}" ]]; then
   echo "No server found for Redis host!"
   exit 1
 fi
 
-ini-set "${currentPath}/../env.properties" yes "${redisServerName}" redisSession "${redisId}"
-ini-set "${currentPath}/../env.properties" yes "${redisId}" version "${version}"
-ini-set "${currentPath}/../env.properties" yes "${redisId}" port "${port}"
-if [[ -n "${password}" ]] && [[ "${password}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${redisId}" password "${password}"
+if [[ -z "${redisSessionId}" ]]; then
+  redisSessionId="${redisSessionServerName}_redis_session"
 fi
-ini-set "${currentPath}/../env.properties" yes "${redisId}" database "${database}"
+
+ini-set "${currentPath}/../env.properties" yes "${redisSessionServerName}" redisSession "${redisSessionId}"
+ini-set "${currentPath}/../env.properties" yes "${redisSessionId}" version "${redisSessionVersion}"
+ini-set "${currentPath}/../env.properties" yes "${redisSessionId}" port "${redisSessionPort}"
+if [[ -n "${redisSessionPassword}" ]] && [[ "${redisSessionPassword}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${redisSessionId}" password "${redisSessionPassword}"
+fi
+ini-set "${currentPath}/../env.properties" yes "${redisSessionId}" database "${redisSessionDatabase}"

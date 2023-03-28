@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,30 +9,25 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -n  System name, default: system
-  -o  Hosts
+  --help                     Show this message
+  --elasticsearchServerName  Name of server to use (optional)
+  --elasticsearchId          Elasticsearch id, default: elasticsearch
+  --elasticsearchVersion     Elasticsearch version
+  --elasticsearchHost        Elasticsearch host, default: localhost
+  --elasticsearchSsl         Elasticsearch SSL (true/false), default: false
+  --elasticsearchPort        Elasticsearch port, default: 9200
+  --elasticsearchPrefix      Elasticsearch prefix, default: magento
+  --elasticsearchUser        User name if behind basic auth
+  --elasticsearchPassword    Password if behind basic auth
 
-Example: ${scriptName} -n server
+Example: ${scriptName} --elasticsearchVersion 7.9 --elasticsearchPort 9200
 EOF
-}
-
-trim()
-{
-  echo -n "$1" | xargs
 }
 
 systemName=
 hosts=
 
-while getopts hn:o:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    n) systemName=$(trim "$OPTARG");;
-    o) hosts=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
 
 if [[ -z "${systemName}" ]]; then
   systemName="system"
@@ -71,12 +67,12 @@ if [[ -n "${hosts}" ]] && [[ "${hosts}" != "-" ]]; then
     hostId=$(echo "${hostName}" | sed "s/[^[:alnum:]]/_/g")
 
     "${currentPath}/init-host.sh" \
-      -n "${systemName}" \
-      -i "${hostId}" \
-      -v "${hostName}" \
-      -s "${hostScope}" \
-      -c "${hostCode}" \
-      -t "${sslTerminated}" \
-      -f "${forceSsl}"
+      --systemName "${systemName}" \
+      --hostId "${hostId}" \
+      --virtualHost "${hostName}" \
+      --scope "${hostScope}" \
+      --code "${hostCode}" \
+      --sslTerminated "${sslTerminated}" \
+      --forceSsl "${forceSsl}"
   done
 fi

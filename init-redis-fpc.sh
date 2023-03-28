@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,73 +9,49 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -i  Redis id, default: redis_fpc
-  -o  Redis host, default: localhost
-  -v  Redis version
-  -p  Redis port, default: 6380
-  -d  Database number, default: 0
-  -s  Redis password (optional)
-  -r  Cache prefix (optional)
-  -c  Name of PHP class (optional)
+  --help                          Show this message
+  --redisFullPageCacheServerName  Name of server to use (optional)
+  --redisFullPageCacheId          Redis id, default: redis_fpc
+  --redisFullPageCacheHost        Redis host, default: localhost
+  --redisFullPageCacheVersion     Redis version
+  --redisFullPageCachePort        Redis port, default: 6380
+  --redisFullPageCachePassword    Redis password (optional)
+  --redisFullPageCacheDatabase    Database number, default: 0
+  --redisFullPageCachePrefix      Cache prefix (optional)
+  --redisFullPageCacheClassName   Name of PHP class (optional)
 
-Example: ${scriptName} -v 6.0 -p 6380 -d 0
+Example: ${scriptName} --redisFullPageCacheVersion 6.0 --redisFullPageCachePort 6380 --redisFullPageCacheDatabase 0
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+redisFullPageCacheServerName=
+redisFullPageCacheId=
+redisFullPageCacheHost=
+redisFullPageCacheVersion=
+redisFullPageCachePort=
+redisFullPageCachePassword=
+redisFullPageCacheDatabase=
+redisFullPageCachePrefix=
+redisFullPageCacheClassName=
 
-redisId=
-host=
-version=
-port=
-password=
-database=
-cachePrefix=
-className=
+source "${currentPath}/../core/prepare-parameters.sh"
 
-while getopts hi:o:v:p:s:d:r:c:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    i) redisId=$(trim "$OPTARG");;
-    o) host=$(trim "$OPTARG");;
-    v) version=$(trim "$OPTARG");;
-    p) port=$(trim "$OPTARG");;
-    s) password=$(trim "$OPTARG");;
-    d) database=$(trim "$OPTARG");;
-    r) cachePrefix=$(trim "$OPTARG");;
-    c) className=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
-
-if [[ -z "${redisId}" ]]; then
-  redisId="redis_fpc"
+if [[ -z "${redisFullPageCacheHost}" ]]; then
+  redisFullPageCacheHost="localhost"
 fi
 
-if [[ -z "${host}" ]]; then
-  host="localhost"
-fi
-
-if [[ -z "${version}" ]]; then
+if [[ -z "${redisFullPageCacheVersion}" ]]; then
   echo "No version specified!"
   exit 1
 fi
 
-if [[ -z "${port}" ]]; then
-  port="6380"
+if [[ -z "${redisFullPageCachePort}" ]]; then
+  redisFullPageCachePort="6380"
 fi
 
-if [[ -z "${database}" ]]; then
-  database="0"
+if [[ -z "${redisFullPageCacheDatabase}" ]]; then
+  redisFullPageCacheDatabase="0"
 fi
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
 
 if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
@@ -86,36 +63,41 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
   exit 1
 fi
 
-redisServerName=
-for server in "${serverList[@]}"; do
-  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-  if [[ "${host}" == "localhost" ]] || [[ "${host}" == "127.0.0.1" ]]; then
-    if [[ "${serverType}" == "local" ]]; then
-      redisServerName="${server}"
+if [[ -z "${redisFullPageCacheServerName}" ]]; then
+  for server in "${serverList[@]}"; do
+    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
+    if [[ "${redisFullPageCacheHost}" == "localhost" ]] || [[ "${redisFullPageCacheHost}" == "127.0.0.1" ]]; then
+      if [[ "${serverType}" == "local" ]]; then
+        redisFullPageCacheServerName="${server}"
+      fi
+    elif [[ "${serverType}" != "local" ]]; then
+      serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
+      if [[ "${serverHost}" == "${redisFullPageCacheHost}" ]]; then
+        redisFullPageCacheServerName="${server}"
+      fi
     fi
-  elif [[ "${serverType}" != "local" ]]; then
-    serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
-    if [[ "${serverHost}" == "${host}" ]]; then
-      redisServerName="${server}"
-    fi
-  fi
-done
+  done
+fi
 
-if [[ -z "${redisServerName}" ]]; then
-  echo "No server found for Redis host!"
+if [[ -z "${redisFullPageCacheServerName}" ]]; then
+  echo "No server found for Redis FPC host!"
   exit 1
 fi
 
-ini-set "${currentPath}/../env.properties" yes "${redisServerName}" redisFPC "${redisId}"
-ini-set "${currentPath}/../env.properties" yes "${redisId}" version "${version}"
-ini-set "${currentPath}/../env.properties" yes "${redisId}" port "${port}"
-if [[ -n "${password}" ]] && [[ "${password}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${redisId}" password "${password}"
+if [[ -z "${redisFullPageCacheId}" ]]; then
+  redisFullPageCacheId="${redisFullPageCacheServerName}_redis_fpc"
 fi
-ini-set "${currentPath}/../env.properties" yes "${redisId}" database "${database}"
-if [[ -n "${cachePrefix}" ]] && [[ "${cachePrefix}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${redisId}" prefix "${cachePrefix}"
+
+ini-set "${currentPath}/../env.properties" yes "${redisFullPageCacheServerName}" redisFPC "${redisFullPageCacheId}"
+ini-set "${currentPath}/../env.properties" yes "${redisFullPageCacheId}" version "${redisFullPageCacheVersion}"
+ini-set "${currentPath}/../env.properties" yes "${redisFullPageCacheId}" port "${redisFullPageCachePort}"
+if [[ -n "${redisFullPageCachePassword}" ]] && [[ "${redisFullPageCachePassword}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${redisFullPageCacheId}" password "${redisFullPageCachePassword}"
 fi
-if [[ -n "${className}" ]] && [[ "${className}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${redisId}" className "${className}"
+ini-set "${currentPath}/../env.properties" yes "${redisFullPageCacheId}" database "${redisFullPageCacheDatabase}"
+if [[ -n "${redisFullPageCachePrefix}" ]] && [[ "${redisFullPageCachePrefix}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${redisFullPageCacheId}" prefix "${redisFullPageCachePrefix}"
+fi
+if [[ -n "${redisFullPageCacheClassName}" ]] && [[ "${redisFullPageCacheClassName}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${redisFullPageCacheId}" className "${redisFullPageCacheClassName}"
 fi

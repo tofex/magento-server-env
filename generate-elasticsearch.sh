@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,27 +9,16 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
+  --help         Show this message
+  --interactive  Interactive mode if data is missing
 
-Example: ${scriptName}
+Example: ${scriptName} --interactive
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+interactive=0
 
-while getopts h? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    ?) usage; exit 1;;
-  esac
-done
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
+source "${currentPath}/../core/prepare-parameters.sh"
 
 serverList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "server") )
 if [[ "${#serverList[@]}" -eq 0 ]]; then
@@ -41,7 +31,7 @@ for server in "${serverList[@]}"; do
   webServer=$(ini-parse "${currentPath}/../env.properties" "no" "${server}" "webServer")
 
   if [[ -n "${webServer}" ]]; then
-    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "path")
+    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${webServer}" "path")
 
     if [[ "${serverType}" == "local" ]]; then
       if [[ -f "${webPath}/app/etc/local.xml" ]]; then
@@ -52,36 +42,36 @@ for server in "${serverList[@]}"; do
 
       if [[ "${magentoVersion}" == 2 ]]; then
         echo -n "Extracting search engine: "
-        searchEngine=$(php read_config_value.php "${webPath}" catalog/search/engine "elasticsearch7")
+        searchEngine=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/engine "elasticsearch7")
         echo "${searchEngine}"
 
         if [[ "${searchEngine}" == "elasticsearch" ]]; then
           echo -n "Extracting Elasticsearch host name: "
-          elasticsearchHostName=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch_server_hostname)
+          elasticsearchHostName=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch_server_hostname)
           echo "${elasticsearchHostName}"
 
           echo -n "Extracting Elasticsearch port: "
-          elasticsearchPort=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch_server_port)
+          elasticsearchPort=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch_server_port)
           echo "${elasticsearchPort}"
         elif [[ "${searchEngine}" == "elasticsearch5" ]]; then
           echo -n "Extracting Elasticsearch host name: "
-          elasticsearchHostName=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch5_server_hostname)
+          elasticsearchHostName=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch5_server_hostname)
           echo "${elasticsearchHostName}"
 
           echo -n "Extracting Elasticsearch port: "
-          elasticsearchPort=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch5_server_port)
+          elasticsearchPort=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch5_server_port)
           echo "${elasticsearchPort}"
         elif [[ "${searchEngine}" == "elasticsearch6" ]]; then
           echo -n "Extracting Elasticsearch host name: "
-          elasticsearchHostName=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch6_server_hostname)
+          elasticsearchHostName=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch6_server_hostname)
           echo "${elasticsearchHostName}"
 
           echo -n "Extracting Elasticsearch port: "
-          elasticsearchPort=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch6_server_port)
+          elasticsearchPort=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch6_server_port)
           echo "${elasticsearchPort}"
         elif [[ "${searchEngine}" == "elasticsearch7" ]]; then
           echo -n "Extracting Elasticsearch host name: "
-          elasticsearchHostName=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_server_hostname)
+          elasticsearchHostName=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch7_server_hostname)
           echo "${elasticsearchHostName}"
 
           echo -n "Extracting Elasticsearch SSL: "
@@ -97,11 +87,11 @@ for server in "${serverList[@]}"; do
           echo "${elasticsearchSsl}"
 
           echo -n "Extracting Elasticsearch port: "
-          elasticsearchPort=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_server_port)
+          elasticsearchPort=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch7_server_port)
           echo "${elasticsearchPort}"
 
           echo -n "Extracting Elasticsearch port: "
-          elasticsearchEnableAuth=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_enable_auth)
+          elasticsearchEnableAuth=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch7_enable_auth)
           if [[ "${elasticsearchEnableAuth}" == 1 ]]; then
             elasticsearchEnableAuth="true"
           else
@@ -111,24 +101,24 @@ for server in "${serverList[@]}"; do
 
           if [[ "${elasticsearchEnableAuth}" == "true" ]]; then
             echo -n "Extracting Elasticsearch user: "
-            elasticsearchUser=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_username)
+            elasticsearchUser=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch7_username)
             echo "${elasticsearchUser}"
 
             echo -n "Extracting Elasticsearch password: "
-            elasticsearchPassword=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_password)
+            elasticsearchPassword=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch7_password)
             echo "${elasticsearchPassword}"
           fi
 
           echo -n "Extracting Elasticsearch prefix: "
-          elasticsearchPrefix=$(php read_config_value.php "${webPath}" catalog/search/elasticsearch7_index_prefix magento2)
+          elasticsearchPrefix=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/elasticsearch7_index_prefix magento2)
           echo "${elasticsearchPrefix}"
         elif [[ "${searchEngine}" == "amasty_elastic" ]]; then
           echo -n "Extracting Elasticsearch host name: "
-          elasticsearchHostName=$(php read_config_value.php "${webPath}" amasty_elastic/connection/server_hostname)
+          elasticsearchHostName=$(php "${currentPath}/read_config_value.php" "${webPath}" amasty_elastic/connection/server_hostname)
           echo "${elasticsearchHostName}"
 
           echo -n "Extracting Elasticsearch port: "
-          elasticsearchPort=$(php read_config_value.php "${webPath}" amasty_elastic/connection/server_port)
+          elasticsearchPort=$(php "${currentPath}/read_config_value.php" "${webPath}" amasty_elastic/connection/server_port)
           echo "${elasticsearchPort}"
         fi
 
@@ -156,25 +146,47 @@ for server in "${serverList[@]}"; do
           echo "${elasticsearchVersion}"
 
           if [[ "${elasticsearchEnableAuth}" == "true" ]]; then
-            ./init-elasticsearch.sh \
-              --elasticsearchHost "${elasticsearchHostName}" \
-              -l "${elasticsearchSsl}" \
-              -v "${elasticsearchVersion}" \
-              -p "${elasticsearchPort}" \
-              -u "${elasticsearchUser}" \
-              -s "${elasticsearchPassword}" \
-              -x "${elasticsearchPrefix}"
+            if [[ "${interactive}" == 1 ]]; then
+              "${currentPath}/init-elasticsearch.sh" \
+                --elasticsearchHost "${elasticsearchHostName}" \
+                --elasticsearchSsl "${elasticsearchSsl}" \
+                --elasticsearchVersion "${elasticsearchVersion}" \
+                --elasticsearchPort "${elasticsearchPort}" \
+                --elasticsearchPrefix "${elasticsearchPrefix}" \
+                --elasticsearchUser "${elasticsearchUser}" \
+                --elasticsearchPassword "${elasticsearchPassword}" \
+                --interactive "${interactive}"
+            else
+              "${currentPath}/init-elasticsearch.sh" \
+                --elasticsearchHost "${elasticsearchHostName}" \
+                --elasticsearchSsl "${elasticsearchSsl}" \
+                --elasticsearchVersion "${elasticsearchVersion}" \
+                --elasticsearchPort "${elasticsearchPort}" \
+                --elasticsearchPrefix "${elasticsearchPrefix}" \
+                --elasticsearchUser "${elasticsearchUser}" \
+                --elasticsearchPassword "${elasticsearchPassword}"
+            fi
           else
-            ./init-elasticsearch.sh \
-              --elasticsearchHost "${elasticsearchHostName}" \
-              -l "${elasticsearchSsl}" \
-              -v "${elasticsearchVersion}" \
-              -p "${elasticsearchPort}" \
-              -x "${elasticsearchPrefix}"
+            if [[ "${interactive}" == 1 ]]; then
+              "${currentPath}/init-elasticsearch.sh" \
+                --elasticsearchHost "${elasticsearchHostName}" \
+                --elasticsearchSsl "${elasticsearchSsl}" \
+                --elasticsearchVersion "${elasticsearchVersion}" \
+                --elasticsearchPort "${elasticsearchPort}" \
+                --elasticsearchPrefix "${elasticsearchPrefix}" \
+                --interactive "${interactive}"
+            else
+              "${currentPath}/init-elasticsearch.sh" \
+                --elasticsearchHost "${elasticsearchHostName}" \
+                --elasticsearchSsl "${elasticsearchSsl}" \
+                --elasticsearchVersion "${elasticsearchVersion}" \
+                --elasticsearchPort "${elasticsearchPort}" \
+                --elasticsearchPrefix "${elasticsearchPrefix}"
+            fi
           fi
         fi
       else
-        ./server-elasticsearch.sh -n "${server}"
+        "${currentPath}/server-elasticsearch.sh" -n "${server}"
       fi
     fi
   fi
