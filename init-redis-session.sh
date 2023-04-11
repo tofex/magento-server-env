@@ -29,6 +29,8 @@ redisSessionPort=
 redisSessionPassword=
 redisSessionDatabase=
 
+source "${currentPath}/../core/prepare-parameters.sh"
+
 if [[ -z "${redisSessionHost}" ]]; then
   redisSessionHost="localhost"
 fi
