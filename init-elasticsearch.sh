@@ -12,6 +12,7 @@ OPTIONS:
   --help                     Show this message
   --elasticsearchServerName  Name of server to use (optional)
   --elasticsearchId          Elasticsearch id, default: elasticsearch
+  --elasticsearchEngine      Engine of Elasticsearch, default: core
   --elasticsearchVersion     Elasticsearch version
   --elasticsearchHost        Elasticsearch host, default: localhost
   --elasticsearchSsl         Elasticsearch SSL (true/false), default: false
@@ -26,6 +27,7 @@ EOF
 
 elasticsearchServerName=
 elasticsearchId=
+elasticsearchEngine=
 elasticsearchVersion=
 elasticsearchHost=
 elasticsearchSsl=
@@ -35,6 +37,10 @@ elasticsearchUser=
 elasticsearchPassword=
 
 source "${currentPath}/../core/prepare-parameters.sh"
+
+if [[ -z "${elasticsearchEngine}" ]]; then
+  elasticsearchEngine="core"
+fi
 
 if [[ -z "${elasticsearchVersion}" ]]; then
   >&2 echo "No Elasticsearch version specified!"
@@ -91,6 +97,7 @@ if [[ -z "${elasticsearchId}" ]]; then
 fi
 
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchServerName}" elasticsearch "${elasticsearchId}"
+ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" engine "${elasticsearchEngine}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" version "${elasticsearchVersion}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" ssl "${elasticsearchSsl}"
 ini-set "${currentPath}/../env.properties" yes "${elasticsearchId}" port "${elasticsearchPort}"
