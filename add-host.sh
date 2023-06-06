@@ -87,20 +87,22 @@ hostId=$(echo "${hostName}" | sed "s/[^[:alnum:]]/_/g")
 
 if [[ "${basicAuth}" == "yes" ]]; then
   "${currentPath}/init-host.sh" \
-    -i "${hostId}" \
-    -v "${hostName}" \
-    -s "${hostScope}" \
-    -c "${hostCode}" \
-    -t "${sslTerminated}" \
-    -f "${forceSsl}" \
-    -b "${basicAuthUserName}" \
-    -w "${basicAuthPassword}"
+    --systemName "system" \
+    --hostId "${hostId}" \
+    --virtualHost "${hostName}" \
+    --scope "${hostScope}" \
+    --code "${hostCode}" \
+    --sslTerminated "${sslTerminated}" \
+    --forceSsl "${forceSsl}" \
+    --basicAuthUserName "${basicAuthUserName}" \
+    --basicAuthPassword "${basicAuthPassword}"
 else
   "${currentPath}/init-host.sh" \
-    -i "${hostId}" \
-    -v "${hostName}" \
-    -s "${hostScope}" \
-    -c "${hostCode}" \
-    -t "${sslTerminated}" \
-    -f "${forceSsl}"
+    --systemName "system" \
+    --hostId "${hostId}" \
+    --virtualHost "${hostName}" \
+    --scope "${hostScope}" \
+    --code "${hostCode}" \
+    --sslTerminated "${sslTerminated}" \
+    --forceSsl "${forceSsl}"
 fi

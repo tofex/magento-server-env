@@ -24,7 +24,7 @@ OPTIONS:
   --basicAuthUserName  Basic Auth User Name (optional)
   --basicAuthPassword  Basic Auth Password (optional)
 
-Example: ${scriptName} -i dev_magento2_de -v dev.magento2.de -s website -c base -t no -f yes
+Example: ${scriptName} --hostId dev_magento2_de --virtualHost dev.magento2.de --scope website --code base --sslTerminated no --forceSsl yes
 EOF
 }
 
