@@ -91,10 +91,6 @@ if [[ "${forceSsl}" != "yes" ]] && [[ "${forceSsl}" != "no" ]]; then
   exit 1
 fi
 
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
-
 if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
 fi

@@ -10,6 +10,8 @@ usage: ${scriptName} options
 
 OPTIONS:
   --help              Show this message
+  --systemName        System name, default: system
+  --installId         Installation id, default: install
   --magentoVersion    Magento version
   --magentoEdition    Magento edition, default: community
   --magentoMode       Magento mode, default: developer
@@ -33,6 +35,8 @@ versionCompare() {
   fi
 }
 
+systemName=
+installId=
 magentoVersion=
 magentoEdition=
 magentoMode=
@@ -43,6 +47,14 @@ adminPath=
 mailAddress=
 
 source "${currentPath}/../core/prepare-parameters.sh"
+
+if [[ -z "${systemName}" ]]; then
+  systemName="system"
+fi
+
+if [[ -z "${installId}" ]]; then
+  installId="install"
+fi
 
 if [[ -z "${magentoVersion}" ]]; then
   echo "No Magento version specified!"
@@ -96,16 +108,17 @@ if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
 fi
 
-ini-set "${currentPath}/../env.properties" yes install repositories "composer|${composerServer}|${composerUser}|${composerPassword}"
-ini-set "${currentPath}/../env.properties" yes install magentoVersion "${magentoVersion}"
-ini-set "${currentPath}/../env.properties" yes install magentoEdition "${magentoEdition}"
-ini-set "${currentPath}/../env.properties" yes install magentoMode "${magentoMode}"
+ini-set "${currentPath}/../env.properties" no "${systemName}" install "${installId}"
+ini-set "${currentPath}/../env.properties" yes "${installId}" repositories "composer|${composerServer}|${composerUser}|${composerPassword}"
+ini-set "${currentPath}/../env.properties" yes "${installId}" magentoVersion "${magentoVersion}"
+ini-set "${currentPath}/../env.properties" yes "${installId}" magentoEdition "${magentoEdition}"
+ini-set "${currentPath}/../env.properties" yes "${installId}" magentoMode "${magentoMode}"
 if [[ -n "${cryptKey}" ]] && [[ "${cryptKey}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes install cryptKey "${cryptKey}"
+  ini-set "${currentPath}/../env.properties" yes "${installId}" cryptKey "${cryptKey}"
 fi
 if [[ -n "${adminPath}" ]] && [[ "${adminPath}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes install adminPath "${adminPath}"
+  ini-set "${currentPath}/../env.properties" yes "${installId}" adminPath "${adminPath}"
 fi
 if [[ -n "${mailAddress}" ]] && [[ "${mailAddress}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes install mailAddress "${mailAddress}"
+  ini-set "${currentPath}/../env.properties" yes "${installId}" mailAddress "${mailAddress}"
 fi
