@@ -96,7 +96,7 @@ if [[ -z "${openSearchId}" ]]; then
   openSearchId="${openSearchServerName}_opensearch"
 fi
 
-ini-set "${currentPath}/../env.properties" yes "${openSearchServerName}" opensearch "${openSearchId}"
+ini-set "${currentPath}/../env.properties" yes "${openSearchServerName}" openSearch "${openSearchId}"
 ini-set "${currentPath}/../env.properties" yes "${openSearchId}" engine "${openSearchEngine}"
 ini-set "${currentPath}/../env.properties" yes "${openSearchId}" version "${openSearchVersion}"
 ini-set "${currentPath}/../env.properties" yes "${openSearchId}" ssl "${openSearchSsl}"
