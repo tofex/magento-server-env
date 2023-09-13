@@ -9,88 +9,203 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
+  --help                          Show this message
+  --redisFullPageCacheServerName  Name of full page cache server
+  --redisFullPageCacheServerType  Type of full page cache server (local, remote, ssh)
+  --redisFullPageCacheServerUser  User of full page cache server (only if type=ssh)
+  --redisFullPageCacheHost        Redis host, default: localhost
+  --redisFullPageCacheVersion     Redis version
+  --redisFullPageCachePort        Redis port, default: 6380
+  --redisFullPageCachePassword    Redis password (optional)
+  --redisFullPageCacheDatabase    Database number, default: 0
+  --redisFullPageCachePrefix      Cache prefix (optional)
+  --redisFullPageCacheClassName   Name of PHP class (optional)
+  --interactive                   Interactive mode if data is missing
 
 Example: ${scriptName}
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+redisFullPageCacheServerName=
+redisFullPageCacheServerType=
+redisFullPageCacheServerUser=
+redisFullPageCacheHost=
+redisFullPageCacheVersion=
+redisFullPageCachePort=
+redisFullPageCachePassword=
+redisFullPageCacheDatabase=
+redisFullPageCachePrefix=
+redisFullPageCacheClassName=
+interactive=0
 
-while getopts hs:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
+
+if [[ -f /opt/install/env.properties ]]; then
+  if [[ -z "${redisFullPageCacheVersion}" ]] || [[ "${redisFullPageCacheVersion}" == "-" ]]; then
+    redisFullPageCacheVersion=$(ini-parse "/opt/install/env.properties" "no" "redis" "fullPageCacheVersion")
+  fi
+  if [[ -z "${redisFullPageCachePort}" ]] || [[ "${redisFullPageCachePort}" == "-" ]]; then
+    redisFullPageCachePort=$(ini-parse "/opt/install/env.properties" "no" "redis" "fullPageCachePort")
+  fi
+fi
 
 if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
 fi
 
-systemName=$(ini-parse "${currentPath}/../env.properties" "no" "system" "name")
-
-if [[ -f /opt/install/env.properties ]]; then
-  redisFullPageCacheVersion=$(ini-parse "/opt/install/env.properties" "no" "redis" "fullPageCacheVersion")
-  redisFullPageCachePort=$(ini-parse "/opt/install/env.properties" "no" "redis" "fullPageCachePort")
-else
-  redisFullPageCacheVersion="6.0"
-  redisFullPageCachePort="6379"
+serverList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "server") )
+if [[ "${#serverList[@]}" -eq 0 ]]; then
+  echo "No servers specified!"
+  exit 1
 fi
 
-echo ""
-echo "Please specify the redis full page cache server name, followed by [ENTER]:"
-read -r -i "server" -e redisFullPageCacheServerName
+if { [[ -z "${redisFullPageCacheServerName}" ]] || [[ "${redisFullPageCacheServerName}" == "-" ]]; } && [[ -n "${redisFullPageCacheHost}" ]]; then
+  for server in "${serverList[@]}"; do
+    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
 
-echo ""
-echo "Please specify the redis full page cache server user, followed by [ENTER]:"
-read -r -i "local" -e redisFullPageCacheServerType
+    if { [[ "${redisFullPageCacheHost}" == "localhost" ]] || [[ "${redisFullPageCacheHost}" == "127.0.0.1" ]]; } && [[ "${serverType}" == "local" ]]; then
+      redisFullPageCacheServerName="${server}"
+      redisFullPageCacheServerType="local"
+    elif [[ "${serverType}" != "local" ]]; then
+      serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
+
+      if [[ "${serverHost}" == "${redisFullPageCacheHost}" ]]; then
+        redisFullPageCacheServerName="${server}"
+        redisFullPageCacheServerType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
+      fi
+    fi
+  done
+fi
+
+if [[ -z "${redisFullPageCacheServerName}" ]] || [[ "${redisFullPageCacheServerName}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the redis full page cache server name, followed by [ENTER]:"
+    read -r -i "server" -e redisFullPageCacheServerName
+  else
+    >&2 echo "No redis full page cache server name specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
+
+if [[ -z "${redisFullPageCacheServerType}" ]] || [[ "${redisFullPageCacheServerType}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the redis full page cache server type, followed by [ENTER]:"
+    read -r -i "remote" -e redisFullPageCacheServerType
+  else
+    >&2 echo "No redis full page cache server type specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
 
 if [[ "${redisFullPageCacheServerType}" == "local" ]]; then
-  redisFullPageCacheServerHost="localhost"
+  if [[ -z "${redisFullPageCacheHost}" ]] || [[ "${redisFullPageCacheHost}" == "-" ]]; then
+    redisFullPageCacheHost="localhost"
+  fi
+elif [[ "${redisFullPageCacheServerType}" == "remote" ]]; then
+  if [[ -z "${redisFullPageCacheHost}" ]] || [[ "${redisFullPageCacheHost}" == "-" ]]; then
+    echo ""
+    echo "Please specify the redis full page cache server host, followed by [ENTER]:"
+    read -r -e redisFullPageCacheHost
+  fi
 elif [[ "${redisFullPageCacheServerType}" == "ssh" ]]; then
-  echo ""
-  echo "Please specify the redis full page cache server host, followed by [ENTER]:"
-  read -r -e redisFullPageCacheServerHost
-elif [[ "${redisFullPageCacheServerType}" == "ssh" ]]; then
-  echo ""
-  echo "Please specify the redis full page cache server host, followed by [ENTER]:"
-  read -r -e redisFullPageCacheServerHost
+  if [[ -z "${redisFullPageCacheHost}" ]] || [[ "${redisFullPageCacheHost}" == "-" ]]; then
+    echo ""
+    echo "Please specify the redis full page cache server host, followed by [ENTER]:"
+    read -r -e redisFullPageCacheHost
+  fi
 
-  echo ""
-  echo "Please specify the redis full page cache server user, followed by [ENTER]:"
-  read -r -e redisFullPageCacheServerUser
+  if [[ -z "${redisFullPageCacheServerUser}" ]] || [[ "${redisFullPageCacheServerUser}" == "-" ]]; then
+    echo ""
+    echo "Please specify the redis full page cache server user, followed by [ENTER]:"
+    read -r -e redisFullPageCacheServerUser
+  fi
 fi
 
-echo ""
-echo "Please specify the redis full page cache version, followed by [ENTER]:"
-read -r -i "${redisFullPageCacheVersion}" -e redisFullPageCacheVersion
+if [[ -z "${redisFullPageCacheVersion}" ]] || [[ "${redisFullPageCacheVersion}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the redis full page cache version, followed by [ENTER]:"
+    read -r -i "${redisFullPageCacheVersion}" -e redisFullPageCacheVersion
+  else
+    >&2 echo "No redis full page cache version specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
 
-echo ""
-echo "Please specify the redis full page cache port, followed by [ENTER]:"
-read -r -i "${redisFullPageCachePort}" -e redisFullPageCachePort
+if [[ -z "${redisFullPageCachePort}" ]] || [[ "${redisFullPageCachePort}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the redis full page cache port, followed by [ENTER]:"
+    read -r -i "${redisFullPageCachePort}" -e redisFullPageCachePort
+  else
+    >&2 echo "No redis full page cache port specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
 
-echo ""
-echo "Please specify the redis full page cache database, followed by [ENTER]:"
-read -r -i "0" -e redisFullPageCacheDatabase
-
-echo ""
-echo "Please specify the redis full page cache password (empty to generate), followed by [ENTER]:"
-read -r -e redisFullPageCachePassword
+if [[ -z "${redisFullPageCacheDatabase}" ]] || [[ "${redisFullPageCacheDatabase}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the redis full page cache database, followed by [ENTER]:"
+    read -r -i "0" -e redisFullPageCacheDatabase
+  else
+    >&2 echo "No redis full page cache database specified!"
+    echo ""
+    usage
+    exit 1
+  fi
+fi
 
 if [[ -z "${redisFullPageCachePassword}" ]]; then
-  redisFullPageCachePassword=$(echo "${RANDOM}" | md5sum | head -c 32)
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the redis full page cache password (empty to generate), followed by [ENTER]:"
+    read -r -e redisFullPageCachePassword
+  fi
 fi
 
-echo ""
-echo "Please specify the redis full page cache prefix, followed by [ENTER]:"
-if [[ -z "${systemName}" ]]; then
-  read -r -e redisFullPageCachePrefix
-else
-  read -r -i "${systemName}_" -e redisFullPageCachePrefix
+generatePassword=0
+if [[ -z "${redisFullPageCachePassword}" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Do you wish to generate a password?"
+    select yesNo in "Yes" "No"; do
+      case "${yesNo}" in
+        Yes ) generatePassword=1; break;;
+        No ) break;;
+      esac
+    done
+  fi
+fi
+
+if [[ -z "${redisFullPageCachePassword}" ]]; then
+  if [[ "${generatePassword}" == 1 ]]; then
+    redisFullPageCachePassword=$(echo "${RANDOM}" | md5sum | head -c 32)
+  fi
+fi
+if [[ -z "${redisFullPageCachePassword}" ]]; then
+  redisFullPageCachePassword="-"
+fi
+
+if [[ -z "${redisFullPageCachePrefix}" ]] || [[ "${redisFullPageCachePrefix}" == "-" ]]; then
+  if [[ "${interactive}" == 1 ]]; then
+    echo ""
+    echo "Please specify the redis full page cache prefix, followed by [ENTER]:"
+    read -r -e redisFullPageCachePrefix
+  fi
+fi
+if [[ -z "${redisFullPageCachePrefix}" ]]; then
+  redisFullPageCachePrefix="-"
 fi
 
 if [[ "${redisFullPageCacheServerType}" == "local" ]]; then
@@ -101,19 +216,20 @@ elif [[ "${redisFullPageCacheServerType}" == "remote" ]]; then
   "${currentPath}/init-server.sh" \
     --name "${redisFullPageCacheServerName}" \
     --type "${redisFullPageCacheServerType}" \
-    --host "${redisFullPageCacheServerHost}"
+    --host "${redisFullPageCacheHost}"
 elif [[ "${redisFullPageCacheServerType}" == "ssh" ]]; then
   "${currentPath}/init-server.sh" \
     --name "${redisFullPageCacheServerName}" \
     --type "${redisFullPageCacheServerType}" \
-    --host "${redisFullPageCacheServerHost}" \
+    --host "${redisFullPageCacheHost}" \
     --sshUser "${redisFullPageCacheServerUser}"
 fi
 
 "${currentPath}/init-redis-fpc.sh" \
-  -o "${redisFullPageCacheServerHost}" \
-  -v "${redisFullPageCacheVersion}" \
-  -p "${redisFullPageCachePort}" \
-  -d "${redisFullPageCacheDatabase}" \
-  -s "${redisFullPageCachePassword}" \
-  -r "${redisFullPageCachePrefix}"
+  --redisFullPageCacheHost "${redisFullPageCacheHost}" \
+  --redisFullPageCacheVersion "${redisFullPageCacheVersion}" \
+  --redisFullPageCachePort "${redisFullPageCachePort}" \
+  --redisFullPageCacheDatabase "${redisFullPageCacheDatabase}" \
+  --redisFullPageCachePassword "${redisFullPageCachePassword}" \
+  --redisFullPageCachePrefix "${redisFullPageCachePrefix}" \
+  --redisFullPageCacheClassName "${redisFullPageCacheClassName}"

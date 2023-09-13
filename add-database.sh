@@ -20,6 +20,7 @@ OPTIONS:
   --databaseUser        Database user
   --databasePassword    Database password
   --databaseName        Database name
+  --interactive         Interactive mode if data is missing
 
 Example: ${scriptName}
 EOF
@@ -39,10 +40,6 @@ interactive=0
 
 source "${currentPath}/../core/prepare-parameters.sh"
 
-if [[ ! -f "${currentPath}/../env.properties" ]]; then
-  touch "${currentPath}/../env.properties"
-fi
-
 if [[ -f /opt/install/env.properties ]]; then
   databaseType=$(ini-parse "/opt/install/env.properties" "no" "mysql" "type")
   databaseVersion=$(ini-parse "/opt/install/env.properties" "no" "mysql" "version")
@@ -57,10 +54,11 @@ else
   databasePort="3306"
 fi
 
-systemName=
-if [[ -f "${currentPath}/../env.properties" ]]; then
-  systemName=$(ini-parse "${currentPath}/../env.properties" "no" "system" "name")
+if [[ ! -f "${currentPath}/../env.properties" ]]; then
+  touch "${currentPath}/../env.properties"
 fi
+
+systemName=$(ini-parse "${currentPath}/../env.properties" "no" "system" "name")
 
 serverList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "server") )
 if [[ "${#serverList[@]}" -eq 0 ]]; then
@@ -76,6 +74,7 @@ if { [[ -z "${databaseServerName}" ]] || [[ "${databaseServerName}" == "-" ]]; }
       databaseServerName="${server}"
     elif [[ "${serverType}" != "local" ]]; then
       serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
+
       if [[ "${serverHost}" == "${databaseHost}" ]]; then
         databaseServerName="${server}"
       fi

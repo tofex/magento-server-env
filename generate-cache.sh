@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,27 +9,16 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
+  --help         Show this message
+  --interactive  Interactive mode if data is missing
 
-Example: ${scriptName}
+Example: ${scriptName} --interactive
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+interactive=0
 
-while getopts h? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    ?) usage; exit 1;;
-  esac
-done
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
+source "${currentPath}/../core/prepare-parameters.sh"
 
 serverList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "server") )
 if [[ "${#serverList[@]}" -eq 0 ]]; then
@@ -37,10 +27,12 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
 fi
 
 for server in "${serverList[@]}"; do
+  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
   webServer=$(ini-parse "${currentPath}/../env.properties" "no" "${server}" "webServer")
+
   if [[ -n "${webServer}" ]]; then
-    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webPath")
+    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${webServer}" "path")
+
     if [[ "${serverType}" == "local" ]]; then
       if [[ -f "${webPath}/app/etc/local.xml" ]]; then
         magentoVersion=1
@@ -48,130 +40,126 @@ for server in "${serverList[@]}"; do
         magentoVersion=2
       fi
 
+      echo -n "Extracting Magento cache prefix: "
       if [[ "${magentoVersion}" == 1 ]]; then
-        cachePrefix="-"
-        echo -n "Extracting Magento cache prefix: "
-        cachePrefix=$(php read_config_value.php "${webPath}" global/cache/prefix)
-        echo "${cachePrefix}"
-
-        echo -n "Extracting cache type: "
-        cacheBackend=$(php read_config_value.php "${webPath}" global/cache/backend)
-        if [[ "${cacheBackend}" == "Cm_Cache_Backend_Redis" ]]; then
-          echo "Redis"
-
-          echo -n "Extracting Redis host: "
-          redisCacheHost=$(php read_config_value.php "${webPath}"  global/cache/backend_options/server localhost)
-          echo "${redisCacheHost}"
-
-          if [[ "${redisCacheHost}" == "localhost" ]] || [[ "${redisCacheHost}" == "127.0.0.1" ]]; then
-            echo -n "Extracting Redis version: "
-            redisCacheVersion=$(redis-cli --version | cut -d' ' -f2)
-            echo "${redisCacheVersion}"
-            if [[ -n "${redisCacheVersion}" ]]; then
-              # shellcheck disable=SC2086
-              redisCacheVersion="$(echo ${redisCacheVersion} | cut -d. -f1).$(echo ${redisCacheVersion} | cut -d. -f2)"
-            fi
-          else
-            echo ""
-            echo "Please specify Redis version, followed by [ENTER]:"
-            read -r -e redisCacheVersion
-          fi
-
-          echo -n "Extracting Redis port: "
-          redisCachePort=$(php read_config_value.php "${webPath}" global/cache/backend_options/port 6379)
-          echo "${redisCachePort}"
-
-          echo -n "Extracting Redis password: "
-          redisCachePassword=$(php read_config_value.php "${webPath}" global/cache/backend_options/password)
-          echo "${redisCachePassword}"
-          if [[ -z "${redisCachePassword}" ]]; then
-            redisCachePassword="-"
-          fi
-
-          echo -n "Extracting Redis database: "
-          redisCacheDatabase=$(php read_config_value.php "${webPath}" global/cache/backend_options/database 0)
-          echo "${redisCacheDatabase}"
-
-          echo -n "Extracting Redis class name: "
-          redisCacheClassName=$(php read_config_value.php "${webPath}" global/cache/backend)
-          echo "${redisCacheClassName}"
-
-          redisCacheClassName=$(echo "${redisCacheClassName}" | sed -e 's/\\/\\\\/g')
-
-          ./init-redis-cache.sh \
-            -o "${redisCacheHost}" \
-            -v "${redisCacheVersion}" \
-            -p "${redisCachePort}" \
-            -s "${redisCachePassword}" \
-            -d "${redisCacheDatabase}" \
-            -c "${redisCacheClassName}" \
-            -r "${cachePrefix}"
-        else
-          echo "Files"
-        fi
+        cachePrefix=$(php "${currentPath}/read_config_value.php" "${webPath}" global/cache/prefix)
       elif [[ "${magentoVersion}" == 2 ]]; then
+        cachePrefix=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/default/id_prefix)
+      fi
+      echo "${cachePrefix}"
+      if [[ -z "${cachePrefix}" ]]; then
         cachePrefix="-"
-        echo -n "Extracting Magento cache prefix: "
-        cachePrefix=$(php read_config_value.php "${webPath}" cache/frontend/default/id_prefix)
-        echo "${cachePrefix}"
+      fi
 
-        echo -n "Extracting cache type: "
-        cacheBackend=$(php read_config_value.php "${webPath}" cache/frontend/default/backend)
-        if [[ "${cacheBackend}" == "Cm_Cache_Backend_Redis" ]] || [[ "${cacheBackend}" == "Magento\Framework\Cache\Backend\Redis" ]]; then
-          echo "Redis"
+      echo -n "Extracting cache type: "
+      if [[ "${magentoVersion}" == 1 ]]; then
+        cacheBackend=$(php "${currentPath}/read_config_value.php" "${webPath}" global/cache/backend)
+      elif [[ "${magentoVersion}" == 2 ]]; then
+        cacheBackend=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/default/backend)
+      fi
 
-          echo -n "Extracting Redis host: "
-          redisCacheHost=$(php read_config_value.php "${webPath}" cache/frontend/default/backend_options/server localhost)
-          echo "${redisCacheHost}"
+      if [[ "${cacheBackend}" == "Cm_Cache_Backend_Redis" ]] || [[ "${cacheBackend}" == "Magento\Framework\Cache\Backend\Redis" ]]; then
+        echo "Redis"
 
+        echo -n "Extracting Redis host: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisCacheHost=$(php "${currentPath}/read_config_value.php" "${webPath}" global/cache/backend_options/server localhost)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisCacheHost=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/default/backend_options/server localhost)
+        fi
+        echo "${redisCacheHost}"
+        if [[ -z "${redisCacheHost}" ]]; then
+          redisCacheHost="-"
+        fi
+
+        echo -n "Extracting Redis port: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisCachePort=$(php "${currentPath}/read_config_value.php" "${webPath}" global/cache/backend_options/port 6379)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisCachePort=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/default/backend_options/port 6379)
+        fi
+        echo "${redisCachePort}"
+        if [[ -z "${redisCachePort}" ]]; then
+          redisCachePort="-"
+        fi
+
+        redisCliScript=$(which redis-cli 2>/dev/null | cat)
+        if [[ -n "${redisCliScript}" ]]; then
+          echo -n "Extracting Redis version: "
           if [[ "${redisCacheHost}" == "localhost" ]] || [[ "${redisCacheHost}" == "127.0.0.1" ]]; then
-            echo -n "Extracting Redis version: "
-            redisCacheVersion=$(redis-cli --version | cut -d' ' -f2)
-            echo "${redisCacheVersion}"
-            if [[ -n "${redisCacheVersion}" ]]; then
-              # shellcheck disable=SC2086
-              redisCacheVersion="$(echo ${redisCacheVersion} | cut -d. -f1).$(echo ${redisCacheVersion} | cut -d. -f2)"
-            fi
-          else
-            echo ""
-            echo "Please specify Redis version, followed by [ENTER]:"
-            read -r -e redisCacheVersion
+            redisCacheVersion=$("${redisCliScript}" --version | cut -d' ' -f2)
+          elif [[ -n "${redisCacheHost}" ]] && [[ "${redisCacheHost}" != "-" ]] && [[ -n "${redisCachePort}" ]] && [[ "${redisCachePort}" != "-" ]]; then
+            redisCacheVersion=$("${redisCliScript}" -h "${redisCacheHost}" -p "${redisCachePort}" --version | cut -d' ' -f2)
+          elif [[ -n "${redisCacheHost}" ]] && [[ "${redisCacheHost}" != "-" ]]; then
+            redisCacheVersion=$("${redisCliScript}" -h "${redisCacheHost}" --version | cut -d' ' -f2)
           fi
-
-          echo -n "Extracting Redis port: "
-          redisCachePort=$(php read_config_value.php "${webPath}" cache/frontend/default/backend_options/port 6379)
-          echo "${redisCachePort}"
-
-          echo -n "Extracting Redis password: "
-          redisCachePassword=$(php read_config_value.php "${webPath}" cache/frontend/default/backend_options/password)
-          echo "${redisCachePassword}"
-          if [[ -z "${redisCachePassword}" ]]; then
-            redisCachePassword="-"
+          echo "${redisCacheVersion}"
+          if [[ -n "${redisCacheVersion}" ]]; then
+            # shellcheck disable=SC2086
+            redisCacheVersion="$(echo ${redisCacheVersion} | cut -d. -f1).$(echo ${redisCacheVersion} | cut -d. -f2)"
           fi
+        fi
+        if [[ -z "${redisCacheVersion}" ]]; then
+          redisCacheVersion="-"
+        fi
 
-          echo -n "Extracting Redis database: "
-          redisCacheDatabase=$(php read_config_value.php "${webPath}" cache/frontend/default/backend_options/database 0)
-          echo "${redisCacheDatabase}"
+        echo -n "Extracting Redis password: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisCachePassword=$(php "${currentPath}/read_config_value.php" "${webPath}" global/cache/backend_options/password)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisCachePassword=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/default/backend_options/password)
+        fi
+        echo "${redisCachePassword}"
+        if [[ -z "${redisCachePassword}" ]]; then
+          redisCachePassword="-"
+        fi
 
-          echo -n "Extracting Redis class name: "
-          redisCacheClassName=$(php read_config_value.php "${webPath}" cache/frontend/default/backend)
-          echo "${redisCacheClassName}"
+        echo -n "Extracting Redis database: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisCacheDatabase=$(php "${currentPath}/read_config_value.php" "${webPath}" global/cache/backend_options/database 0)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisCacheDatabase=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/default/backend_options/database 0)
+        fi
+        echo "${redisCacheDatabase}"
+        if [[ -z "${redisCacheDatabase}" ]]; then
+          redisCacheDatabase="-"
+        fi
 
-          redisCacheClassName=$(echo "${redisCacheClassName}" | sed -e 's/\\/\\\\/g')
-
-          ./init-redis-cache.sh \
-            -o "${redisCacheHost}" \
-            -v "${redisCacheVersion}" \
-            -p "${redisCachePort}" \
-            -s "${redisCachePassword}" \
-            -d "${redisCacheDatabase}" \
-            -c "${redisCacheClassName}" \
-            -r "${cachePrefix}"
+        echo -n "Extracting Redis class name: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisCacheClassName=$(php "${currentPath}/read_config_value.php" "${webPath}" global/cache/backend)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisCacheClassName=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/default/backend)
+        fi
+        echo "${redisCacheClassName}"
+        if [[ -z "${redisCacheClassName}" ]]; then
+          redisCacheClassName="-"
         else
-          echo "Files"
+          redisCacheClassName=$(echo "${redisCacheClassName}" | sed -e 's/\\/\\\\/g')
+        fi
+
+        if [[ "${interactive}" == 1 ]]; then
+          "${currentPath}/add-redis-cache.sh" \
+            --redisCacheHost "${redisCacheHost}" \
+            --redisCacheVersion "${redisCacheVersion}" \
+            --redisCachePort "${redisCachePort}" \
+            --redisCachePassword "${redisCachePassword}" \
+            --redisCacheDatabase "${redisCacheDatabase}" \
+            --cachePrefix "${cachePrefix}" \
+            --redisCacheClassName "${redisCacheClassName}" \
+            --interactive
+        else
+          "${currentPath}/add-redis-cache.sh" \
+            --redisCacheHost "${redisCacheHost}" \
+            --redisCacheVersion "${redisCacheVersion}" \
+            --redisCachePort "${redisCachePort}" \
+            --redisCachePassword "${redisCachePassword}" \
+            --redisCacheDatabase "${redisCacheDatabase}" \
+            --cachePrefix "${cachePrefix}" \
+            --redisCacheClassName "${redisCacheClassName}"
         fi
       else
-        ./server-cache.sh -n "${server}"
+        echo "Files"
       fi
     fi
   fi

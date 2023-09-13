@@ -46,13 +46,20 @@ for server in "${serverList[@]}"; do
       else
         databaseHost=$(php "${currentPath}/read_config_value.php" "${webPath}" db/connection/default/host localhost)
       fi
+      if [[ "${databaseHost}" =~ ":" ]]; then
+        IFS=: read -d "" -r -a databaseHostParts < <(printf '%s' "${databaseHost}") || echo -n ""
+        databaseHost="${databaseHostParts[0]}"
+        databasePort="${databaseHostParts[1]}"
+      fi
       echo "${databaseHost}"
 
       echo -n "Extracting database port: "
-      if [[ "${magentoVersion}" == 1 ]]; then
-        databasePort=$(php "${currentPath}/read_config_value.php" "${webPath}" global/resources/default_setup/connection/port 3306)
-      else
-        databasePort=$(php "${currentPath}/read_config_value.php" "${webPath}" db/connection/default/port 3306)
+      if [[ -z "${databasePort}" ]]; then
+        if [[ "${magentoVersion}" == 1 ]]; then
+          databasePort=$(php "${currentPath}/read_config_value.php" "${webPath}" global/resources/default_setup/connection/port 3306)
+        else
+          databasePort=$(php "${currentPath}/read_config_value.php" "${webPath}" db/connection/default/port 3306)
+        fi
       fi
       echo "${databasePort}"
 

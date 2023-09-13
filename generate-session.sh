@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,27 +9,16 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
+  --help         Show this message
+  --interactive  Interactive mode if data is missing
 
-Example: ${scriptName}
+Example: ${scriptName} --interactive
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+interactive=0
 
-while getopts h? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    ?) usage; exit 1;;
-  esac
-done
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
+source "${currentPath}/../core/prepare-parameters.sh"
 
 serverList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "server") )
 if [[ "${#serverList[@]}" -eq 0 ]]; then
@@ -37,10 +27,12 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
 fi
 
 for server in "${serverList[@]}"; do
+  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
   webServer=$(ini-parse "${currentPath}/../env.properties" "no" "${server}" "webServer")
+
   if [[ -n "${webServer}" ]]; then
-    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webPath")
+    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${webServer}" "path")
+
     if [[ "${serverType}" == "local" ]]; then
       if [[ -f "${webPath}/app/etc/local.xml" ]]; then
         magentoVersion=1
@@ -48,109 +40,98 @@ for server in "${serverList[@]}"; do
         magentoVersion=2
       fi
 
+      echo -n "Extracting session type: "
       if [[ "${magentoVersion}" == 1 ]]; then
-        echo -n "Extracting session type: "
-        sessionBackend=$(php read_config_value.php "${webPath}" global/session_save)
-        if [[ "${sessionBackend}" == "db" ]]; then
-          redisSessionHost=$(php read_config_value.php "${webPath}" global/redis_session/host localhost)
-          if [[ -n "${redisSessionHost}" ]]; then
-            echo "Redis"
-
-            echo -n "Extracting Redis host: "
-            redisSessionHost=$(php read_config_value.php "${webPath}" global/redis_session/host localhost)
-            echo "${redisSessionHost}"
-
-            if [[ "${redisSessionHost}" == "localhost" ]] || [[ "${redisSessionHost}" == "127.0.0.1" ]]; then
-              echo -n "Extracting Redis version: "
-              redisSessionVersion=$(redis-cli --version | cut -d' ' -f2)
-              echo "${redisSessionVersion}"
-              if [[ -n "${redisSessionVersion}" ]]; then
-                # shellcheck disable=SC2086
-                redisSessionVersion="$(echo ${redisSessionVersion} | cut -d. -f1).$(echo ${redisSessionVersion} | cut -d. -f2)"
-              fi
-            else
-              echo ""
-              echo "Please specify Redis version, followed by [ENTER]:"
-              read -r -e redisSessionVersion
-            fi
-
-            echo -n "Extracting Redis port: "
-            redisSessionPort=$(php read_config_value.php "${webPath}" global/redis_session/port 6379)
-            echo "${redisSessionPort}"
-
-            echo -n "Extracting Redis password: "
-            redisSessionPassword=$(php read_config_value.php "${webPath}" global/redis_session/password)
-            echo "${redisSessionPassword}"
-            if [[ -z "${redisSessionPassword}" ]]; then
-              redisSessionPassword="-"
-            fi
-
-            echo -n "Extracting Redis database: "
-            redisSessionDatabase=$(php read_config_value.php "${webPath}" global/redis_session/database 0)
-            echo "${redisSessionDatabase}"
-
-            ./init-redis-session.sh \
-              -o "${redisSessionHost}" \
-              -v "${redisSessionVersion}" \
-              -p "${redisSessionPort}" \
-              -s "${redisSessionPassword}" \
-              -d "${redisSessionDatabase}"
-          else
-            echo "Database"
-          fi
-        else
-          echo "Files"
-        fi
+        sessionBackend=$(php "${currentPath}/read_config_value.php" "${webPath}" global/session_save)
       elif [[ "${magentoVersion}" == 2 ]]; then
-        echo -n "Extracting session type: "
-        sessionBackend=$(php read_config_value.php "${webPath}" session/save)
-        if [[ "${sessionBackend}" == "redis" ]]; then
-          echo "Redis"
+        sessionBackend=$(php "${currentPath}/read_config_value.php" "${webPath}" session/save)
+      fi
 
-          echo -n "Extracting Redis host: "
-          redisSessionHost=$(php read_config_value.php "${webPath}" session/redis/host localhost)
-          echo "${redisSessionHost}"
+      if [[ "${sessionBackend}" == "db" ]] || [[ "${sessionBackend}" == "redis" ]]; then
+        echo "Redis"
 
+        echo -n "Extracting Redis host: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisSessionHost=$(php "${currentPath}/read_config_value.php" "${webPath}" global/redis_session/host localhost)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisSessionHost=$(php "${currentPath}/read_config_value.php" "${webPath}" session/redis/host localhost)
+        fi
+        echo "${redisSessionHost}"
+        if [[ -z "${redisSessionHost}" ]]; then
+          redisSessionHost="-"
+        fi
+
+        echo -n "Extracting Redis port: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisSessionPort=$(php "${currentPath}/read_config_value.php" "${webPath}" global/redis_session/port 6379)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisSessionPort=$(php "${currentPath}/read_config_value.php" "${webPath}" session/redis/port 6379)
+        fi
+        echo "${redisSessionPort}"
+        if [[ -z "${redisSessionPort}" ]]; then
+          redisSessionPort="-"
+        fi
+
+        redisCliScript=$(which redis-cli 2>/dev/null | cat)
+        if [[ -n "${redisCliScript}" ]]; then
+          echo -n "Extracting Redis version: "
           if [[ "${redisSessionHost}" == "localhost" ]] || [[ "${redisSessionHost}" == "127.0.0.1" ]]; then
-            echo -n "Extracting Redis version: "
-            redisSessionVersion=$(redis-cli --version | cut -d' ' -f2)
-            echo "${redisSessionVersion}"
-            if [[ -n "${redisSessionVersion}" ]]; then
-              # shellcheck disable=SC2086
-              redisSessionVersion="$(echo ${redisSessionVersion} | cut -d. -f1).$(echo ${redisSessionVersion} | cut -d. -f2)"
-            fi
-          else
-            echo ""
-            echo "Please specify Redis version, followed by [ENTER]:"
-            read -r -e redisSessionVersion
+            redisSessionVersion=$("${redisCliScript}" --version | cut -d' ' -f2)
+          elif [[ -n "${redisSessionHost}" ]] && [[ "${redisSessionHost}" != "-" ]] && [[ -n "${redisSessionPort}" ]] && [[ "${redisSessionPort}" != "-" ]]; then
+            redisSessionVersion=$("${redisCliScript}" -h "${redisSessionHost}" -p "${redisSessionPort}" --version | cut -d' ' -f2)
+          elif [[ -n "${redisSessionHost}" ]] && [[ "${redisSessionHost}" != "-" ]]; then
+            redisSessionVersion=$("${redisCliScript}" -h "${redisSessionHost}" --version | cut -d' ' -f2)
           fi
-
-          echo -n "Extracting Redis port: "
-          redisSessionPort=$(php read_config_value.php "${webPath}" session/redis/port 6379)
-          echo "${redisSessionPort}"
-
-          echo -n "Extracting Redis password: "
-          redisSessionPassword=$(php read_config_value.php "${webPath}" session/redis/password)
-          echo "${redisSessionPassword}"
-          if [[ -z "${redisSessionPassword}" ]]; then
-            redisSessionPassword="-"
+          echo "${redisSessionVersion}"
+          if [[ -n "${redisSessionVersion}" ]]; then
+            # shellcheck disable=SC2086
+            redisSessionVersion="$(echo ${redisSessionVersion} | cut -d. -f1).$(echo ${redisSessionVersion} | cut -d. -f2)"
           fi
+        fi
+        if [[ -z "${redisSessionVersion}" ]]; then
+          redisSessionVersion="-"
+        fi
 
-          echo -n "Extracting Redis database: "
-          redisSessionDatabase=$(php read_config_value.php "${webPath}" session/redis/database 0)
-          echo "${redisSessionDatabase}"
+        echo -n "Extracting Redis password: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisSessionPassword=$(php "${currentPath}/read_config_value.php" "${webPath}" global/redis_session/password)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisSessionPassword=$(php "${currentPath}/read_config_value.php" "${webPath}" session/redis/password)
+        fi
+        echo "${redisSessionPassword}"
+        if [[ -z "${redisSessionPassword}" ]]; then
+          redisSessionPassword="-"
+        fi
 
-          ./init-redis-session.sh \
-            -o "${redisSessionHost}" \
-            -v "${redisSessionVersion}" \
-            -p "${redisSessionPort}" \
-            -s "${redisSessionPassword}" \
-            -d "${redisSessionDatabase}"
+        echo -n "Extracting Redis database: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisSessionDatabase=$(php "${currentPath}/read_config_value.php" "${webPath}" global/redis_session/database 0)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisSessionDatabase=$(php "${currentPath}/read_config_value.php" "${webPath}" session/redis/database 0)
+        fi
+        echo "${redisSessionDatabase}"
+        if [[ -z "${redisSessionDatabase}" ]]; then
+          redisSessionDatabase="-"
+        fi
+
+        if [[ "${interactive}" == 1 ]]; then
+          "${currentPath}/add-redis-session.sh" \
+            --redisSessionHost "${redisSessionHost}" \
+            --redisSessionVersion "${redisSessionVersion}" \
+            --redisSessionPort "${redisSessionPort}" \
+            --redisSessionPassword "${redisSessionPassword}" \
+            --redisSessionDatabase "${redisSessionDatabase}" \
+            --interactive
         else
-          echo "Files"
+          "${currentPath}/add-redis-session.sh" \
+            --redisSessionHost "${redisSessionHost}" \
+            --redisSessionVersion "${redisSessionVersion}" \
+            --redisSessionPort "${redisSessionPort}" \
+            --redisSessionPassword "${redisSessionPassword}" \
+            --redisSessionDatabase "${redisSessionDatabase}"
         fi
       else
-        ./server-session.sh -n "${server}"
+        echo "Files"
       fi
     fi
   fi

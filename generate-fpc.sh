@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,27 +9,16 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
+  --help         Show this message
+  --interactive  Interactive mode if data is missing
 
-Example: ${scriptName}
+Example: ${scriptName} --interactive
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+interactive=0
 
-while getopts h? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    ?) usage; exit 1;;
-  esac
-done
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
+source "${currentPath}/../core/prepare-parameters.sh"
 
 serverList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "server") )
 if [[ "${#serverList[@]}" -eq 0 ]]; then
@@ -37,10 +27,12 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
 fi
 
 for server in "${serverList[@]}"; do
+  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
   webServer=$(ini-parse "${currentPath}/../env.properties" "no" "${server}" "webServer")
+
   if [[ -n "${webServer}" ]]; then
-    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webPath")
+    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${webServer}" "path")
+
     if [[ "${serverType}" == "local" ]]; then
       if [[ -f "${webPath}/app/etc/local.xml" ]]; then
         magentoVersion=1
@@ -48,126 +40,117 @@ for server in "${serverList[@]}"; do
         magentoVersion=2
       fi
 
+      echo -n "Extracting FPC prefix: "
       if [[ "${magentoVersion}" == 1 ]]; then
         fpcPrefix=
-
-        echo -n "Extracting FPC type: "
-        fpcBackend=$(php read_config_value.php "${webPath}" global/full_page_cache/backend)
-        if [[ "${fpcBackend}" == "Cm_Cache_Backend_Redis" ]]; then
-          echo "Redis"
-
-          echo -n "Extracting Redis host: "
-          redisFullPageCacheHost=$(php read_config_value.php "${webPath}" global/full_page_cache/backend_options/backend_options/server localhost)
-          echo "${redisFullPageCacheHost}"
-
-          if [[ "${redisFullPageCacheHost}" == "localhost" ]] || [[ "${redisFullPageCacheHost}" == "127.0.0.1" ]]; then
-            echo -n "Extracting Redis version: "
-            redisFullPageCacheVersion=$(redis-cli --version | cut -d' ' -f2)
-            echo "${redisFullPageCacheVersion}"
-            if [[ -n "${redisFullPageCacheVersion}" ]]; then
-              # shellcheck disable=SC2086
-              redisFullPageCacheVersion="$(echo ${redisFullPageCacheVersion} | cut -d. -f1).$(echo ${redisFullPageCacheVersion} | cut -d. -f2)"
-            fi
-          else
-            echo ""
-            echo "Please specify Redis version, followed by [ENTER]:"
-            read -r -e redisFullPageCacheVersion
-          fi
-
-          echo -n "Extracting Redis port: "
-          redisFullPageCachePort=$(php read_config_value.php "${webPath}" global/full_page_cache/backend_options/port 6379)
-          echo "${redisFullPageCachePort}"
-
-          echo -n "Extracting Redis password: "
-          redisFullPageCachePassword=$(php read_config_value.php "${webPath}" global/full_page_cache/backend_options/password)
-          echo "${redisFullPageCachePassword}"
-          if [[ -z "${redisFullPageCachePassword}" ]]; then
-            redisFullPageCachePassword="-"
-          fi
-
-          echo -n "Extracting Redis database: "
-          redisFullPageCacheDatabase=$(php read_config_value.php "${webPath}" global/full_page_cache/backend_options/database 0)
-          echo "${redisFullPageCacheDatabase}"
-
-          echo -n "Extracting Redis class name: "
-          redisFullPageCacheClassName=$(php read_config_value.php "${webPath}" global/full_page_cache/backend)
-          echo "${redisFullPageCacheClassName}"
-
-          redisFullPageCacheClassName=$(echo "${redisFullPageCacheClassName}" | sed -e 's/\\/\\\\/g')
-
-          ./init-redis-fpc.sh \
-            -o "${redisFullPageCacheHost}" \
-            -v "${redisFullPageCacheVersion}" \
-            -p "${redisFullPageCachePort}" \
-            -s "${redisFullPageCachePassword}" \
-            -d "${redisFullPageCacheDatabase}" \
-            -c "${redisFullPageCacheClassName}" \
-            -r "${fpcPrefix}"
-        else
-          echo "Files"
-        fi
       elif [[ "${magentoVersion}" == 2 ]]; then
-        echo -n "Extracting FPC prefix: "
-        fpcPrefix=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/id_prefix)
-        echo "${fpcPrefix}"
+        fpcPrefix=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/page_cache/id_prefix)
+      fi
+      echo "${fpcPrefix}"
+      if [[ -z "${fpcPrefix}" ]]; then
+        fpcPrefix="-"
+      fi
 
-        echo -n "Extracting FPC type: "
-        fpcBackend=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend)
-        if [[ "${fpcBackend}" == "Cm_Cache_Backend_Redis" ]] || [[ "${fpcBackend}" == "Magento\Framework\Cache\Backend\Redis" ]]; then
-          echo "Redis"
+      echo -n "Extracting FPC type: "
+      if [[ "${magentoVersion}" == 1 ]]; then
+        fpcBackend=$(php "${currentPath}/read_config_value.php" "${webPath}" global/full_page_cache/backend)
+      elif [[ "${magentoVersion}" == 2 ]]; then
+        fpcBackend=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/page_cache/backend)
+      fi
 
-          echo -n "Extracting Redis host: "
-          redisFullPageCacheHost=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/server localhost)
-          echo "${redisFullPageCacheHost}"
+      if [[ "${fpcBackend}" == "Cm_Cache_Backend_Redis" ]] || [[ "${fpcBackend}" == "Magento\Framework\Cache\Backend\Redis" ]]; then
+        echo "Redis"
 
+        echo -n "Extracting Redis host: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisFullPageCacheHost=$(php "${currentPath}/read_config_value.php" "${webPath}" global/full_page_cache/backend_options/backend_options/server localhost)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisFullPageCacheHost=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/page_cache/backend_options/server localhost)
+        fi
+        echo "${redisFullPageCacheHost}"
+        if [[ -z "${redisFullPageCacheHost}" ]]; then
+          redisFullPageCacheHost="-"
+        fi
+
+        echo -n "Extracting Redis port: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisFullPageCachePort=$(php "${currentPath}/read_config_value.php" "${webPath}" global/full_page_cache/backend_options/port 6379)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisFullPageCachePort=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/page_cache/backend_options/port 6379)
+        fi
+        echo "${redisFullPageCachePort}"
+        if [[ -z "${redisFullPageCachePort}" ]]; then
+          redisFullPageCachePort="-"
+        fi
+
+        redisCliScript=$(which redis-cli 2>/dev/null | cat)
+        if [[ -n "${redisCliScript}" ]]; then
+          echo -n "Extracting Redis version: "
           if [[ "${redisFullPageCacheHost}" == "localhost" ]] || [[ "${redisFullPageCacheHost}" == "127.0.0.1" ]]; then
-            echo -n "Extracting Redis version: "
-            redisFullPageCacheVersion=$(redis-cli --version | cut -d' ' -f2)
-            echo "${redisFullPageCacheVersion}"
-            if [[ -n "${redisFullPageCacheVersion}" ]]; then
-              # shellcheck disable=SC2086
-              redisFullPageCacheVersion="$(echo ${redisFullPageCacheVersion} | cut -d. -f1).$(echo ${redisFullPageCacheVersion} | cut -d. -f2)"
-            fi
-          else
-            echo ""
-            echo "Please specify Redis version, followed by [ENTER]:"
-            read -r -e redisFullPageCacheVersion
+            redisFullPageCacheVersion=$("${redisCliScript}" --version | cut -d' ' -f2)
+          elif [[ -n "${redisFullPageCacheHost}" ]] && [[ "${redisFullPageCacheHost}" != "-" ]] && [[ -n "${redisFullPageCachePort}" ]] && [[ "${redisFullPageCachePort}" != "-" ]]; then
+            redisFullPageCacheVersion=$("${redisCliScript}" -h "${redisFullPageCacheHost}" -p "${redisFullPageCachePort}" --version | cut -d' ' -f2)
+          elif [[ -n "${redisFullPageCacheHost}" ]] && [[ "${redisFullPageCacheHost}" != "-" ]]; then
+            redisFullPageCacheVersion=$("${redisCliScript}" -h "${redisFullPageCacheHost}" --version | cut -d' ' -f2)
           fi
-
-          echo -n "Extracting Redis port: "
-          redisFullPageCachePort=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/port 6379)
-          echo "${redisFullPageCachePort}"
-
-          echo -n "Extracting Redis password: "
-          redisFullPageCachePassword=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/password)
-          echo "${redisFullPageCachePassword}"
-          if [[ -z "${redisFullPageCachePassword}" ]]; then
-            redisFullPageCachePassword="-"
+          echo "${redisFullPageCacheVersion}"
+          if [[ -n "${redisFullPageCacheVersion}" ]]; then
+            # shellcheck disable=SC2086
+            redisFullPageCacheVersion="$(echo ${redisFullPageCacheVersion} | cut -d. -f1).$(echo ${redisFullPageCacheVersion} | cut -d. -f2)"
           fi
+        fi
+        if [[ -z "${redisFullPageCacheVersion}" ]]; then
+          redisFullPageCacheVersion="-"
+        fi
 
-          echo -n "Extracting Redis database: "
-          redisFullPageCacheDatabase=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend_options/database 0)
-          echo "${redisFullPageCacheDatabase}"
+        echo -n "Extracting Redis password: "
+        if [[ "${magentoVersion}" == 1 ]]; then
+          redisFullPageCachePassword=$(php "${currentPath}/read_config_value.php" "${webPath}" global/full_page_cache/backend_options/password)
+        elif [[ "${magentoVersion}" == 2 ]]; then
+          redisFullPageCachePassword=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/page_cache/backend_options/password)
+        fi
+        echo "${redisFullPageCachePassword}"
+        if [[ -z "${redisFullPageCachePassword}" ]]; then
+          redisFullPageCachePassword="-"
+        fi
 
-          echo -n "Extracting Redis class name: "
-          redisFullPageCacheClassName=$(php read_config_value.php "${webPath}" cache/frontend/page_cache/backend)
-          echo "${redisFullPageCacheClassName}"
+        echo -n "Extracting Redis database: "
+          redisFullPageCacheDatabase=$(php "${currentPath}/read_config_value.php" "${webPath}" global/full_page_cache/backend_options/database 0)
+          redisFullPageCacheDatabase=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/page_cache/backend_options/database 0)
+        echo "${redisFullPageCacheDatabase}"
 
-          redisFullPageCacheClassName=$(echo "${redisFullPageCacheClassName}" | sed -e 's/\\/\\\\/g')
-
-          ./init-redis-fpc.sh \
-            -o "${redisFullPageCacheHost}" \
-            -v "${redisFullPageCacheVersion}" \
-            -p "${redisFullPageCachePort}" \
-            -s "${redisFullPageCachePassword}" \
-            -d "${redisFullPageCacheDatabase}" \
-            -c "${redisFullPageCacheClassName}" \
-            -r "${fpcPrefix}"
+        echo -n "Extracting Redis class name: "
+          redisFullPageCacheClassName=$(php "${currentPath}/read_config_value.php" "${webPath}" global/full_page_cache/backend)
+          redisFullPageCacheClassName=$(php "${currentPath}/read_config_value.php" "${webPath}" cache/frontend/page_cache/backend)
+        echo "${redisFullPageCacheClassName}"
+        if [[ -z "${redisFullPageCacheClassName}" ]]; then
+          redisFullPageCacheClassName="-"
         else
-          echo "Files"
+          redisFullPageCacheClassName=$(echo "${redisFullPageCacheClassName}" | sed -e 's/\\/\\\\/g')
+        fi
+
+        if [[ "${interactive}" == 1 ]]; then
+          "${currentPath}/add-redis-fpc.sh" \
+            --redisFullPageCacheHost "${redisFullPageCacheHost}" \
+            --redisFullPageCacheVersion "${redisFullPageCacheVersion}" \
+            --redisFullPageCachePort "${redisFullPageCachePort}" \
+            --redisFullPageCachePassword "${redisFullPageCachePassword}" \
+            --redisFullPageCacheDatabase "${redisFullPageCacheDatabase}" \
+            --redisFullPageCacheClassName "${redisFullPageCacheClassName}" \
+            --redisFullPageCachePrefix "${fpcPrefix}" \
+            --interactive
+        else
+          "${currentPath}/add-redis-fpc.sh" \
+            --redisFullPageCacheHost "${redisFullPageCacheHost}" \
+            --redisFullPageCacheVersion "${redisFullPageCacheVersion}" \
+            --redisFullPageCachePort "${redisFullPageCachePort}" \
+            --redisFullPageCachePassword "${redisFullPageCachePassword}" \
+            --redisFullPageCacheDatabase "${redisFullPageCacheDatabase}" \
+            --redisFullPageCacheClassName "${redisFullPageCacheClassName}" \
+            --redisFullPageCachePrefix "${fpcPrefix}"
         fi
       else
-        ./server-fpc.sh -n "${server}"
+        echo "Files"
       fi
     fi
   fi
