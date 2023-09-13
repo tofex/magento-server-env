@@ -41,17 +41,21 @@ interactive=0
 source "${currentPath}/../core/prepare-parameters.sh"
 
 if [[ -f /opt/install/env.properties ]]; then
-  databaseType=$(ini-parse "/opt/install/env.properties" "no" "mysql" "type")
-  databaseVersion=$(ini-parse "/opt/install/env.properties" "no" "mysql" "version")
-  databasePort=$(ini-parse "/opt/install/env.properties" "no" "mysql" "port")
+  if [[ -z "${databaseType}" ]] || [[ "${databaseType}" == "-" ]]; then
+    databaseType=$(ini-parse "/opt/install/env.properties" "no" "mysql" "type")
+  fi
+
+  if [[ -z "${databaseVersion}" ]] || [[ "${databaseVersion}" == "-" ]]; then
+    databaseVersion=$(ini-parse "/opt/install/env.properties" "no" "mysql" "version")
+  fi
+
+  if [[ -z "${databasePort}" ]] || [[ "${databasePort}" == "-" ]]; then
+    databasePort=$(ini-parse "/opt/install/env.properties" "no" "mysql" "port")
+  fi
 
   if [[ -z "${databaseServerType}" ]] && [[ -n "${databaseType}" ]]; then
     databaseServerType="local"
   fi
-else
-  databaseType="mysql"
-  databaseVersion="5.7"
-  databasePort="3306"
 fi
 
 if [[ ! -f "${currentPath}/../env.properties" ]]; then
@@ -72,11 +76,13 @@ if { [[ -z "${databaseServerName}" ]] || [[ "${databaseServerName}" == "-" ]]; }
 
     if { [[ "${databaseHost}" == "localhost" ]] || [[ "${databaseHost}" == "127.0.0.1" ]]; } && [[ "${serverType}" == "local" ]]; then
       databaseServerName="${server}"
+      databaseServerType="local"
     elif [[ "${serverType}" != "local" ]]; then
       serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
 
       if [[ "${serverHost}" == "${databaseHost}" ]]; then
         databaseServerName="${server}"
+        databaseServerType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
       fi
     fi
   done
