@@ -131,7 +131,7 @@ if [[ -z "${redisCacheVersion}" ]] || [[ "${redisCacheVersion}" == "-" ]]; then
   if [[ "${interactive}" == 1 ]]; then
     echo ""
     echo "Please specify the redis cache version, followed by [ENTER]:"
-    read -r -i "${redisCacheVersion}" -e redisCacheVersion
+    read -r -e redisCacheVersion
   else
     >&2 echo "No redis cache version specified!"
     echo ""

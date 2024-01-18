@@ -120,6 +120,49 @@ for server in "${serverList[@]}"; do
           echo -n "Extracting Elasticsearch port: "
           elasticsearchPort=$(php "${currentPath}/read_config_value.php" "${webPath}" amasty_elastic/connection/server_port)
           echo "${elasticsearchPort}"
+        elif [[ "${searchEngine}" == "opensearch" ]]; then
+          echo -n "Extracting OpenSearch host name: "
+          openSearchHostName=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/opensearch_server_hostname)
+          echo "${openSearchHostName}"
+
+          echo -n "Extracting OpenSearch SSL: "
+          if [[ "${openSearchHostName}" =~ ^https:// ]]; then
+            openSearchHostName=$(echo "${openSearchHostName}" | awk -F/ '{print $3}')
+            openSearchSsl="true"
+          elif [[ "${openSearchHostName}" =~ ^http:// ]]; then
+            openSearchHostName=$(echo "${openSearchHostName}" | awk -F/ '{print $3}')
+            openSearchSsl="false"
+          else
+            openSearchSsl="false"
+          fi
+          echo "${openSearchSsl}"
+
+          echo -n "Extracting OpenSearch port: "
+          openSearchPort=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/opensearch_server_port)
+          echo "${openSearchPort}"
+
+          echo -n "Extracting OpenSearch port: "
+          openSearchEnableAuth=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/opensearch_enable_auth)
+          if [[ "${openSearchEnableAuth}" == 1 ]]; then
+            openSearchEnableAuth="true"
+          else
+            openSearchEnableAuth="false"
+          fi
+          echo "${openSearchEnableAuth}"
+
+          if [[ "${openSearchEnableAuth}" == "true" ]]; then
+            echo -n "Extracting OpenSearch user: "
+            openSearchUser=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/opensearch_username)
+            echo "${openSearchUser}"
+
+            echo -n "Extracting OpenSearch password: "
+            openSearchPassword=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/opensearch_password)
+            echo "${openSearchPassword}"
+          fi
+
+          echo -n "Extracting OpenSearch prefix: "
+          openSearchPrefix=$(php "${currentPath}/read_config_value.php" "${webPath}" catalog/search/opensearch_index_prefix magento2)
+          echo "${openSearchPrefix}"
         fi
 
         if [[ -n "${elasticsearchHostName}" ]]; then
@@ -147,7 +190,7 @@ for server in "${serverList[@]}"; do
 
           if [[ "${elasticsearchEnableAuth}" == "true" ]]; then
             if [[ "${interactive}" == 1 ]]; then
-              "${currentPath}/init-elasticsearch.sh" \
+              "${currentPath}/add-elasticsearch.sh" \
                 --elasticsearchHost "${elasticsearchHostName}" \
                 --elasticsearchSsl "${elasticsearchSsl}" \
                 --elasticsearchVersion "${elasticsearchVersion}" \
@@ -155,9 +198,9 @@ for server in "${serverList[@]}"; do
                 --elasticsearchPrefix "${elasticsearchPrefix}" \
                 --elasticsearchUser "${elasticsearchUser}" \
                 --elasticsearchPassword "${elasticsearchPassword}" \
-                --interactive "${interactive}"
+                --interactive
             else
-              "${currentPath}/init-elasticsearch.sh" \
+              "${currentPath}/add-elasticsearch.sh" \
                 --elasticsearchHost "${elasticsearchHostName}" \
                 --elasticsearchSsl "${elasticsearchSsl}" \
                 --elasticsearchVersion "${elasticsearchVersion}" \
@@ -168,20 +211,84 @@ for server in "${serverList[@]}"; do
             fi
           else
             if [[ "${interactive}" == 1 ]]; then
-              "${currentPath}/init-elasticsearch.sh" \
+              "${currentPath}/add-elasticsearch.sh" \
                 --elasticsearchHost "${elasticsearchHostName}" \
                 --elasticsearchSsl "${elasticsearchSsl}" \
                 --elasticsearchVersion "${elasticsearchVersion}" \
                 --elasticsearchPort "${elasticsearchPort}" \
                 --elasticsearchPrefix "${elasticsearchPrefix}" \
-                --interactive "${interactive}"
+                --interactive
             else
-              "${currentPath}/init-elasticsearch.sh" \
+              "${currentPath}/add-elasticsearch.sh" \
                 --elasticsearchHost "${elasticsearchHostName}" \
                 --elasticsearchSsl "${elasticsearchSsl}" \
                 --elasticsearchVersion "${elasticsearchVersion}" \
                 --elasticsearchPort "${elasticsearchPort}" \
                 --elasticsearchPrefix "${elasticsearchPrefix}"
+            fi
+          fi
+        fi
+
+        if [[ -n "${openSearchHostName}" ]]; then
+          if [[ -z "${openSearchPort}" ]]; then
+            openSearchPort=9200
+          fi
+
+          echo -n "Extracting OpenSearch version: "
+          if [[ "${openSearchSsl}" == "true" ]]; then
+            openSearchInfoUrl="https://${openSearchHostName}:${openSearchPort}"
+          else
+            openSearchInfoUrl="http://${openSearchHostName}:${openSearchPort}"
+          fi
+          if [[ "${openSearchEnableAuth}" == "true" ]]; then
+            openSearchInfo=$(curl -XGET -u "${openSearchUser}:${openSearchPassword}" -s "${openSearchInfoUrl}")
+          else
+            openSearchInfo=$(curl -XGET -s "${openSearchInfoUrl}")
+          fi
+          if [[ $(which jq 2>/dev/null | wc -l) -gt 0 ]]; then
+            openSearchVersion=$(echo "${openSearchInfo}" | jq -r ".version.number // empty")
+          else
+            openSearchVersion=$(echo "${openSearchInfo}" | tr '\n' ' ' | sed 's/\s\+/ /g' | grep -oE '\"number\" : \"[0-9]*.[0-9]*.[0-9]*\"' | tr '\"' ' ' | awk '{print $3}')
+          fi
+          echo "${openSearchVersion}"
+
+          if [[ "${openSearchEnableAuth}" == "true" ]]; then
+            if [[ "${interactive}" == 1 ]]; then
+              "${currentPath}/add-opensearch.sh" \
+                --openSearchHost "${openSearchHostName}" \
+                --openSearchSsl "${openSearchSsl}" \
+                --openSearchVersion "${openSearchVersion}" \
+                --openSearchPort "${openSearchPort}" \
+                --openSearchPrefix "${openSearchPrefix}" \
+                --openSearchUser "${openSearchUser}" \
+                --openSearchPassword "${openSearchPassword}" \
+                --interactive
+            else
+              "${currentPath}/add-opensearch.sh" \
+                --openSearchHost "${openSearchHostName}" \
+                --openSearchSsl "${openSearchSsl}" \
+                --openSearchVersion "${openSearchVersion}" \
+                --openSearchPort "${openSearchPort}" \
+                --openSearchPrefix "${openSearchPrefix}" \
+                --openSearchUser "${openSearchUser}" \
+                --openSearchPassword "${openSearchPassword}"
+            fi
+          else
+            if [[ "${interactive}" == 1 ]]; then
+              "${currentPath}/add-opensearch.sh" \
+                --openSearchHost "${openSearchHostName}" \
+                --openSearchSsl "${openSearchSsl}" \
+                --openSearchVersion "${openSearchVersion}" \
+                --openSearchPort "${openSearchPort}" \
+                --openSearchPrefix "${openSearchPrefix}" \
+                --interactive
+            else
+              "${currentPath}/add-opensearch.sh" \
+                --openSearchHost "${openSearchHostName}" \
+                --openSearchSsl "${openSearchSsl}" \
+                --openSearchVersion "${openSearchVersion}" \
+                --openSearchPort "${openSearchPort}" \
+                --openSearchPrefix "${openSearchPrefix}"
             fi
           fi
         fi

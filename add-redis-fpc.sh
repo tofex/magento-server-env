@@ -131,7 +131,7 @@ if [[ -z "${redisFullPageCacheVersion}" ]] || [[ "${redisFullPageCacheVersion}" 
   if [[ "${interactive}" == 1 ]]; then
     echo ""
     echo "Please specify the redis full page cache version, followed by [ENTER]:"
-    read -r -i "${redisFullPageCacheVersion}" -e redisFullPageCacheVersion
+    read -r -e redisFullPageCacheVersion
   else
     >&2 echo "No redis full page cache version specified!"
     echo ""

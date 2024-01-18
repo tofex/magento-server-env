@@ -47,7 +47,7 @@ if [[ "${interactive}" == 1 ]]; then
   "${currentPath}/generate-links.sh"
   "${currentPath}/generate-install.sh"
   "${currentPath}/generate-database.sh" --interactive
-  "${currentPath}/generate-elasticsearch.sh" --interactive
+  "${currentPath}/generate-search.sh" --interactive
   "${currentPath}/generate-solr.sh" --interactive
   "${currentPath}/generate-cache.sh" --interactive
   "${currentPath}/generate-fpc.sh" --interactive
@@ -60,7 +60,7 @@ else
   "${currentPath}/generate-links.sh"
   "${currentPath}/generate-install.sh"
   "${currentPath}/generate-database.sh"
-  "${currentPath}/generate-elasticsearch.sh"
+  "${currentPath}/generate-search.sh"
   "${currentPath}/generate-solr.sh"
   "${currentPath}/generate-cache.sh"
   "${currentPath}/generate-fpc.sh"

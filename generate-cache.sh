@@ -145,7 +145,7 @@ for server in "${serverList[@]}"; do
             --redisCachePort "${redisCachePort}" \
             --redisCachePassword "${redisCachePassword}" \
             --redisCacheDatabase "${redisCacheDatabase}" \
-            --cachePrefix "${cachePrefix}" \
+            --redisCachePrefix "${cachePrefix}" \
             --redisCacheClassName "${redisCacheClassName}" \
             --interactive
         else
@@ -155,7 +155,7 @@ for server in "${serverList[@]}"; do
             --redisCachePort "${redisCachePort}" \
             --redisCachePassword "${redisCachePassword}" \
             --redisCacheDatabase "${redisCacheDatabase}" \
-            --cachePrefix "${cachePrefix}" \
+            --redisCachePrefix "${cachePrefix}" \
             --redisCacheClassName "${redisCacheClassName}"
         fi
       else

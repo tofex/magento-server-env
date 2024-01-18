@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,80 +9,61 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -i  Solr id, default: solr
-  -o  Solr host, default: localhost
-  -v  Solr version
-  -t  Solr protocol, default: https
-  -p  Solr port, default: 8983
-  -r  Solr Url Path, default: solr
-  -u  Solr user (optional)
-  -s  Solr password (optional)
+  --help          Show this message
+  --solrId        Solr id, default: solr
+  --solrHost      Solr solrHost, default: localhost
+  --solrVersion   Solr solrVersion
+  --solrProtocol  Solr solrProtocol, default: https
+  --solrPort      Solr solrPort, default: 8983
+  --solrUrlPath   Solr Url Path, default: solr
+  --solrUser      Solr solrUser (optional)
+  --solrPassword  Solr solrPassword (optional)
 
-Example: ${scriptName} -i solr -v 8.6 -p 8983 -r solr
+Example: ${scriptName} --solrVersion 8.6 --solrPort 8983
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
-
 solrId=
-host=
-version=
-protocol=
-port=
-urlPath=
-user=
-password=
+solrHost=
+solrVersion=
+solrProtocol=
+solrPort=
+solrUrlPath=
+solrUser=
+solrPassword=
 
-while getopts hi:o:v:t:p:r:u:s:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    i) solrId=$(trim "$OPTARG");;
-    o) host=$(trim "$OPTARG");;
-    v) version=$(trim "$OPTARG");;
-    t) protocol=$(trim "$OPTARG");;
-    p) port=$(trim "$OPTARG");;
-    r) urlPath=$(trim "$OPTARG");;
-    u) user=$(trim "$OPTARG");;
-    s) password=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
 
 if [[ -z "${solrId}" ]]; then
   solrId="solr"
 fi
 
-if [[ -z "${host}" ]]; then
-  host="localhost"
+if [[ -z "${solrHost}" ]]; then
+  solrHost="localhost"
 else
   remoteIpAddress="$(dig TXT -4 +short o-o.myaddr.l.google.com @ns1.google.com | awk -F'"' '{ print $2}')"
-  if [[ -n "${remoteIpAddress}" ]] && [[ "${host}" == "${remoteIpAddress}" ]]; then
-    host="localhost"
+  if [[ -n "${remoteIpAddress}" ]] && [[ "${solrHost}" == "${remoteIpAddress}" ]]; then
+    solrHost="localhost"
   fi
 fi
 
-if [[ -z "${version}" ]]; then
-  echo "No version specified!"
+if [[ -z "${solrVersion}" ]]; then
+  echo "No solrVersion specified!"
   exit 1
 fi
 
-if [[ -z "${protocol}" ]]; then
-  protocol="https"
+if [[ -z "${solrProtocol}" ]]; then
+  solrProtocol="https"
 fi
 
-if [[ -z "${port}" ]]; then
-  port="8983"
+if [[ -z "${solrPort}" ]]; then
+  solrPort="8983"
 fi
 
-if [[ -z "${urlPath}" ]]; then
-  urlPath="solr"
+if [[ -z "${solrUrlPath}" ]]; then
+  solrUrlPath="solr"
 fi
 
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd "${currentPath}"
 
@@ -98,29 +80,29 @@ fi
 solrServerName=
 for server in "${serverList[@]}"; do
   serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-  if [[ "${host}" == "localhost" ]] && [[ "${serverType}" == "local" ]]; then
+  if [[ "${solrHost}" == "localhost" ]] && [[ "${serverType}" == "local" ]]; then
     solrServerName="${server}"
   elif [[ "${serverType}" != "local" ]]; then
-    serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
-    if [[ "${serverHost}" == "${host}" ]]; then
+    serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "solrHost")
+    if [[ "${serverHost}" == "${solrHost}" ]]; then
       solrServerName="${server}"
     fi
   fi
 done
 
 if [[ -z "${solrServerName}" ]]; then
-  echo "No server found for Solr host!"
+  echo "No server found for Solr solrHost!"
   exit 1
 fi
 
 ini-set "${currentPath}/../env.properties" yes "${solrServerName}" solr "${solrId}"
-ini-set "${currentPath}/../env.properties" yes "${solrId}" version "${version}"
-ini-set "${currentPath}/../env.properties" yes "${solrId}" protocol "${protocol}"
-ini-set "${currentPath}/../env.properties" yes "${solrId}" port "${port}"
-ini-set "${currentPath}/../env.properties" yes "${solrId}" urlPath "${urlPath}"
-if [[ -n "${user}" ]] && [[ "${user}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${solrId}" user "${user}"
+ini-set "${currentPath}/../env.properties" yes "${solrId}" solrVersion "${solrVersion}"
+ini-set "${currentPath}/../env.properties" yes "${solrId}" solrProtocol "${solrProtocol}"
+ini-set "${currentPath}/../env.properties" yes "${solrId}" solrPort "${solrPort}"
+ini-set "${currentPath}/../env.properties" yes "${solrId}" solrUrlPath "${solrUrlPath}"
+if [[ -n "${solrUser}" ]] && [[ "${solrUser}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${solrId}" solrUser "${solrUser}"
 fi
-if [[ -n "${password}" ]] && [[ "${password}" != "-" ]]; then
-  ini-set "${currentPath}/../env.properties" yes "${solrId}" password "${password}"
+if [[ -n "${solrPassword}" ]] && [[ "${solrPassword}" != "-" ]]; then
+  ini-set "${currentPath}/../env.properties" yes "${solrId}" solrPassword "${solrPassword}"
 fi

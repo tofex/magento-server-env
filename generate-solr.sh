@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,32 +9,16 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
+  --help         Show this message
+  --interactive  Interactive mode if data is missing
 
-Example: ${scriptName}
+Example: ${scriptName} --interactive
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
+interactive=0
 
-while getopts h? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    ?) usage; exit 1;;
-  esac
-done
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-cd "${currentPath}"
-
-if [[ ! -f "${currentPath}/../env.properties" ]]; then
-  echo "No environment specified!"
-  exit 1
-fi
+source "${currentPath}/../core/prepare-parameters.sh"
 
 serverList=( $(ini-parse "${currentPath}/../env.properties" "yes" "system" "server") )
 if [[ "${#serverList[@]}" -eq 0 ]]; then
@@ -42,10 +27,12 @@ if [[ "${#serverList[@]}" -eq 0 ]]; then
 fi
 
 for server in "${serverList[@]}"; do
+  serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
   webServer=$(ini-parse "${currentPath}/../env.properties" "no" "${server}" "webServer")
+
   if [[ -n "${webServer}" ]]; then
-    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
-    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "webPath")
+    webPath=$(ini-parse "${currentPath}/../env.properties" "yes" "${webServer}" "path")
+
     if [[ "${serverType}" == "local" ]]; then
       if [[ -f "${webPath}/app/etc/local.xml" ]]; then
         magentoVersion=1
@@ -97,14 +84,26 @@ for server in "${serverList[@]}"; do
           solrVersion="$(echo ${solrVersion} | cut -d. -f1).$(echo ${solrVersion} | cut -d. -f2)"
         fi
 
-        ./init-solr.sh \
-          -o "${solrHost}" \
-          -v "${solrVersion}" \
-          -t "${solrProtocol}" \
-          -p "${solrPort}" \
-          -r "${solrUrlPath}" \
-          -u "${solrUser}" \
-          -s "${solrPassword}"
+        if [[ "${interactive}" == 1 ]]; then
+          "${currentPath}/init-solr.sh" \
+            --solrHost "${solrHost}" \
+            --solrVersion "${solrVersion}" \
+            --solrProtocol "${solrProtocol}" \
+            --solrPort "${solrPort}" \
+            --solrUrlPath "${solrUrlPath}" \
+            --solrUser "${solrUser}" \
+            --solrPassword "${solrPassword}" \
+            --interactive
+        else
+          "${currentPath}/init-solr.sh" \
+            --solrHost "${solrHost}" \
+            --solrVersion "${solrVersion}" \
+            --solrProtocol "${solrProtocol}" \
+            --solrPort "${solrPort}" \
+            --solrUrlPath "${solrUrlPath}" \
+            --solrUser "${solrUser}" \
+            --solrPassword "${solrPassword}"
+        fi
 
         echo -n "Extracting all Solr cores: "
         if [[ -n "${solrUser}" ]] && [[ "${solrUser}" != "-" ]]; then
@@ -142,12 +141,22 @@ for server in "${serverList[@]}"; do
               configFileName=$(cat /tmp/solr_cores.json | jq -r ".status[\"${solrCore}\"][\"config\"]")
               echo "${configFileName}"
 
-              ./init-solr-core.sh \
-                -i "solr_${solrCore}" \
-                -n "${solrCore}" \
-                -t "${instanceDirectory}" \
-                -d "${dataDirectory}" \
-                -c "${configFileName}"
+              if [[ "${interactive}" == 1 ]]; then
+                "${currentPath}/init-solr-core.sh" \
+                  --solrCoreId "solr_${solrCore}" \
+                  --solrName "${solrCore}" \
+                  --solrInstanceDirectory "${instanceDirectory}" \
+                  --solrDataDirectory "${dataDirectory}" \
+                  --solrConfigFileName "${configFileName}" \
+                  --interactive
+              else
+                "${currentPath}/init-solr-core.sh" \
+                  --solrCoreId "solr_${solrCore}" \
+                  --solrName "${solrCore}" \
+                  --solrInstanceDirectory "${instanceDirectory}" \
+                  --solrDataDirectory "${dataDirectory}" \
+                  --solrConfigFileName "${configFileName}"
+              fi
             fi
           done
 

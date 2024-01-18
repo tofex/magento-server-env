@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 scriptName="${0##*/}"
 
 usage()
@@ -8,72 +9,54 @@ cat >&2 << EOF
 usage: ${scriptName} options
 
 OPTIONS:
-  -h  Show this message
-  -s  System name, default: system
-  -i  Solr core id
-  -n  Solr core name
-  -t  Instance directory
-  -d  Data directory
-  -c  Config file name, default: solrconfig.xml
+  --help                   Show this message
+  --systemName             System name, default: system
+  --solrCoreId             Solr core id
+  --solrName               Solr core name
+  --solrInstanceDirectory  Instance directory
+  --solrDataDirectory      Data directory
+  --solrConfigFileName     Config file name, default: solrconfig.xml
 
-Example: ${scriptName} -i solr_shop_german -n shop_german -t /var/solr/data/shop_german -d /var/solr/data/shop_german/data -c solrconfig.xml
+Example: ${scriptName} --solrCoreId solr_shop_german --solrName shop_german --solrInstanceDirectory /var/solr/data/shop_german --dataDirectory /var/solr/data/shop_german/data --configFileName solrconfig.xml
 EOF
 }
 
-trim()
-{
-  echo -n "$1" | xargs
-}
-
 systemName=
-coreId=
-name=
-instanceDirectory=
-dataDirectory=
-configFileName=
+solrCoreId=
+solrName=
+solrInstanceDirectory=
+solrDataDirectory=
+solrConfigFileName=
 
-while getopts hs:i:n:t:d:c:? option; do
-  case "${option}" in
-    h) usage; exit 1;;
-    s) systemName=$(trim "$OPTARG");;
-    i) coreId=$(trim "$OPTARG");;
-    n) name=$(trim "$OPTARG");;
-    t) instanceDirectory=$(trim "$OPTARG");;
-    d) dataDirectory=$(trim "$OPTARG");;
-    c) configFileName=$(trim "$OPTARG");;
-    ?) usage; exit 1;;
-  esac
-done
+source "${currentPath}/../core/prepare-parameters.sh"
 
 if [[ -z "${systemName}" ]]; then
   systemName="system"
 fi
 
-if [[ -z "${coreId}" ]]; then
+if [[ -z "${solrCoreId}" ]]; then
   echo "No Solr core id specified!"
   exit 1
 fi
 
-if [[ -z "${name}" ]]; then
+if [[ -z "${solrName}" ]]; then
   echo "No Solr core name specified!"
   exit 1
 fi
 
-if [[ -z "${instanceDirectory}" ]]; then
+if [[ -z "${solrInstanceDirectory}" ]]; then
   echo "No Solr instance directory specified!"
   exit 1
 fi
 
-if [[ -z "${dataDirectory}" ]]; then
+if [[ -z "${solrDataDirectory}" ]]; then
   echo "No Solr data directory specified!"
   exit 1
 fi
 
-if [[ -z "${configFileName}" ]] || [[ "${configFileName}" == "-" ]]; then
-  configFileName="solrconfig.xml"
+if [[ -z "${solrConfigFileName}" ]] || [[ "${solrConfigFileName}" == "-" ]]; then
+  solrConfigFileName="solrconfig.xml"
 fi
-
-currentPath="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 cd "${currentPath}"
 
@@ -81,8 +64,8 @@ if [[ ! -f "${currentPath}/../env.properties" ]]; then
   touch "${currentPath}/../env.properties"
 fi
 
-ini-set "${currentPath}/../env.properties" no "${systemName}" solr_core "${coreId}"
-ini-set "${currentPath}/../env.properties" yes "${coreId}" name "${name}"
-ini-set "${currentPath}/../env.properties" yes "${coreId}" instanceDirectory "${instanceDirectory}"
-ini-set "${currentPath}/../env.properties" yes "${coreId}" dataDirectory "${dataDirectory}"
-ini-set "${currentPath}/../env.properties" yes "${coreId}" configFileName "${configFileName}"
+ini-set "${currentPath}/../env.properties" no "${systemName}" solr_core "${solrCoreId}"
+ini-set "${currentPath}/../env.properties" yes "${solrCoreId}" name "${solrName}"
+ini-set "${currentPath}/../env.properties" yes "${solrCoreId}" instanceDirectory "${solrInstanceDirectory}"
+ini-set "${currentPath}/../env.properties" yes "${solrCoreId}" dataDirectory "${solrDataDirectory}"
+ini-set "${currentPath}/../env.properties" yes "${solrCoreId}" configFileName "${solrConfigFileName}"

@@ -91,11 +91,29 @@ if [[ -z "${elasticsearchServerName}" ]] || [[ "${elasticsearchServerName}" == "
   fi
 fi
 
+if { [[ -z "${elasticsearchServerName}" ]] || [[ "${elasticsearchServerName}" == "-" ]]; } && [[ -n "${elasticsearchHost}" ]]; then
+  for server in "${serverList[@]}"; do
+    serverType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
+
+    if { [[ "${elasticsearchHost}" == "localhost" ]] || [[ "${elasticsearchHost}" == "127.0.0.1" ]]; } && [[ "${serverType}" == "local" ]]; then
+      elasticsearchServerName="${server}"
+      elasticsearchServerType="local"
+    elif [[ "${serverType}" != "local" ]]; then
+      serverHost=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "host")
+
+      if [[ "${serverHost}" == "${elasticsearchHost}" ]]; then
+        elasticsearchServerName="${server}"
+        elasticsearchServerType=$(ini-parse "${currentPath}/../env.properties" "yes" "${server}" "type")
+      fi
+    fi
+  done
+fi
+
 if [[ -z "${elasticsearchServerType}" ]] || [[ "${elasticsearchServerType}" == "-" ]]; then
   if [[ "${interactive}" == 1 ]]; then
     echo ""
     echo "Please specify the Elasticsearch server user, followed by [ENTER]:"
-    read -r -i "local" -e elasticsearchServerType
+    read -r -i "remote" -e elasticsearchServerType
   else
     >&2 echo "No Elasticsearch server type specified!"
     echo ""
@@ -105,19 +123,27 @@ if [[ -z "${elasticsearchServerType}" ]] || [[ "${elasticsearchServerType}" == "
 fi
 
 if [[ "${elasticsearchServerType}" == "local" ]]; then
-  elasticsearchHost="localhost"
+  if [[ -z "${elasticsearchHost}" ]] || [[ "${elasticsearchHost}" == "-" ]]; then
+    elasticsearchHost="localhost"
+  fi
 elif [[ "${elasticsearchServerType}" == "remote" ]]; then
-  echo ""
-  echo "Please specify the elasticsearch server host, followed by [ENTER]:"
-  read -r -e elasticsearchHost
+  if [[ -z "${elasticsearchHost}" ]] || [[ "${elasticsearchHost}" == "-" ]]; then
+    echo ""
+    echo "Please specify the Elasticsearch server host, followed by [ENTER]:"
+    read -r -e elasticsearchHost
+  fi
 elif [[ "${elasticsearchServerType}" == "ssh" ]]; then
-  echo ""
-  echo "Please specify the elasticsearch server host, followed by [ENTER]:"
-  read -r -e elasticsearchHost
+  if [[ -z "${elasticsearchHost}" ]] || [[ "${elasticsearchHost}" == "-" ]]; then
+    echo ""
+    echo "Please specify the Elasticsearch server host, followed by [ENTER]:"
+    read -r -e elasticsearchHost
+  fi
 
-  echo ""
-  echo "Please specify the elasticsearch server user, followed by [ENTER]:"
-  read -r -e elasticsearchServerUser
+  if [[ -z "${elasticsearchServerUser}" ]] || [[ "${elasticsearchServerUser}" == "-" ]]; then
+    echo ""
+    echo "Please specify the Elasticsearch server user, followed by [ENTER]:"
+    read -r -e elasticsearchServerUser
+  fi
 fi
 
 if [[ -z "${elasticsearchSsl}" ]] || [[ "${elasticsearchSsl}" == "-" ]]; then
@@ -167,7 +193,7 @@ fi
 if [[ -z "${elasticsearchPrefix}" ]] || [[ "${elasticsearchPrefix}" == "-" ]]; then
   if [[ "${interactive}" == 1 ]]; then
     echo ""
-    echo "Please specify the elasticsearch prefix, followed by [ENTER]:"
+    echo "Please specify the Elasticsearch prefix, followed by [ENTER]:"
     read -r -i "magento" -e elasticsearchPrefix
   else
     >&2 echo "No Elasticsearch prefix specified!"

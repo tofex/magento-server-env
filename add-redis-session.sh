@@ -127,7 +127,7 @@ if [[ -z "${redisSessionVersion}" ]] || [[ "${redisSessionVersion}" == "-" ]]; t
   if [[ "${interactive}" == 1 ]]; then
     echo ""
     echo "Please specify the redis session version, followed by [ENTER]:"
-    read -r -i "${redisSessionVersion}" -e redisSessionVersion
+    read -r -e redisSessionVersion
   else
     >&2 echo "No redis session version specified!"
     echo ""
